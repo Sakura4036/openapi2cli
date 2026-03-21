@@ -86,7 +86,6 @@ my-cli get-users --limit 10
 - [Architecture & How It Works](docs/architecture.md)
 - [Development Guide](docs/development.md)
 - [PRD (Product Requirements Document)](PRD.md)
-- [Progress Tracker](PROGRESS.md)
 
 ## Contribution Guide
 

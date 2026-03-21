@@ -88,7 +88,6 @@ my-cli get-users --limit 10
 - [技术架构与原理](docs/architecture.md)
 - [开发指南](docs/development.md)
 - [产品需求文档 (PRD)](PRD.md)
-- [开发进度表 (Progress)](PROGRESS.md)
 
 ## 贡献指南 (Contribution Guide)
 
