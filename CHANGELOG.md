@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [0.1.1] - 2026-03-22
+
+### Added
+- **Configuration Support**: Added support for `.openapi2cli.yaml` to customize CLI generation.
+- **Agent-Friendly Features**: New `search-api` and `export-tools-json` commands for better LLM integration.
+- **Developer Controls**: Implemented `allow`/`block` permission lists and `readonly` mode.
+- **Safety**: Added confirmation flags (`--force`) for high-risk operations.
+- **Examples**: Automatically extract and display `example` fields from OpenAPI specs in help text.
+
+### Fixed
+- **Name Collisions**: Protected built-in system commands from being overwritten by API operations.
+
 ## [0.1.0] - 2026-03-21
 
 ### Added

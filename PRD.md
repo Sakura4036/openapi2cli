@@ -191,7 +191,14 @@ openapi2cli/
 - [x] 更多示例
 - [x] npm 发布
 
+### Phase 5 - Agent & Developer Enhancements (Done ✅)
+- [x] 配置文件支持 (.openapi2cli.yaml)
+- [x] Agent 友好功能 (语义搜索 search-api, LLM 工具导出 export-tools-json)
+- [x] 开发者控制 (权限 allow/block, 只读模式)
+- [x] 安全确认 (--force 标志)
+- [x] 示例自动提取与通过 help 展示
+
 ---
 
 
-*最后更新：2026-03-21*
+*最后更新：2026-03-22*

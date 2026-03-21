@@ -14,6 +14,35 @@ A CLI tool that converts OpenAPI specifications (JSON/YAML) into executable CLI 
 - **Tag-based hierarchy**: Organize commands by OpenAPI tags
 - **Environment variable support**: Inject credentials via environment variables
 - **Binary support**: Optimizes file upload and download interfaces
+- **Agent-Friendly**: Built-in support for LLM tool calling export and semantic search
+- **Developer Controls**: Declarative permissions (allow/block), read-only mode, and safety confirmations
+
+## Configuration
+
+You can use a `.openapi2cli.yaml` file to customize the generated CLI. Use the `-c, --config <path>` flag to specify your configuration.
+
+```yaml
+# Example .openapi2cli.yaml
+cliName: my-service-cli
+permissions:
+  readonly: false
+  allow:
+    tags: ["users", "pets"]
+  block:
+    operationIds: ["deleteSensitiveData"]
+safety:
+  highRiskOperations: ["delete-user"]
+  confirmationFlag: force
+agent:
+  includeExamples: true
+```
+
+## System Commands
+
+Each generated CLI includes built-in system commands:
+
+- `search-api <keyword>`: Search for API endpoints by keyword.
+- `export-tools-json`: Export API definitions as JSON for LLM tool calling (OpenAI/Claude compatible).
 
 ## Installation
 

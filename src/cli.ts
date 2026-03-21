@@ -20,8 +20,16 @@ program
   .option('--include-tags <tags>', 'Comma-separated list of tags to include')
   .option('--include-ops <ids>', 'Comma-separated list of operation IDs to include')
   .option('--group-by-tag', 'Enable tag-based subcommand hierarchy')
+  .option('-c, --config <path>', 'Path to configuration file')
   .action(async (input: string, options: any) => {
     try {
+      let generatorConfig: any = {};
+      if (options.config) {
+        console.log(`Loading configuration from: ${options.config}`);
+        const { loadConfig } = await import('./config');
+        generatorConfig = loadConfig(path.resolve(options.config));
+      }
+
       console.log(`Parsing OpenAPI specification from: ${input}`);
 
       const parser = new OpenAPIParser();
@@ -48,15 +56,21 @@ program
         console.log(`Security schemes: ${spec.securitySchemes.map((s) => s.name).join(', ')}`);
       }
 
+      // Merge CLI options with config file (CLI has priority)
+      const cliName = options.name || generatorConfig.cliName || kebabCase(spec.info.title);
+      const baseUrl = options.baseUrl || generatorConfig.baseUrl || spec.baseUrl;
+      const envPrefix = options.envPrefix || generatorConfig.envPrefix;
+
       // Create generator
       const generator = new TypeScriptGenerator({
         outputDir: path.resolve(options.output),
-        cliName: options.name || kebabCase(spec.info.title),
-        baseUrl: options.baseUrl || spec.baseUrl,
-        envPrefix: options.envPrefix,
-        includeTags: options.includeTags ? options.includeTags.split(',').map((s: string) => s.trim()) : undefined,
-        includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim()) : undefined,
+        cliName,
+        baseUrl,
+        envPrefix,
+        includeTags: options.includeTags ? options.includeTags.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.tags || undefined),
+        includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.operationIds || undefined),
         groupByTag: options.groupByTag,
+        config: generatorConfig,
       });
 
       console.log(`Generating CLI to: ${options.output}`);

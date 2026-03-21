@@ -54,6 +54,8 @@ interface OperationInternal {
   requestBody?: any;
   responses?: Record<string, any>;
   security?: any[];
+  example?: any;      // Added
+  examples?: Record<string, any>; // Added
 }
 
 export class OpenAPIParser {
@@ -258,6 +260,8 @@ export class OpenAPIParser {
         requestBody: this.extractRequestBody(operation),
         responses: this.extractResponses(operation),
         security: operation.security?.map((s: any) => Object.keys(s)[0]),
+        example: operation.example || (operation as any)['x-example'], // Added
+        examples: (operation.examples ? Object.values(operation.examples) : undefined) || (operation as any)['x-examples'], // Added
       });
     }
 
@@ -299,6 +303,7 @@ export class OpenAPIParser {
         description: param.description,
         schema: param.schema,
         type: this.getTypeFromSchema(param.schema || param),
+        example: param.example, // Added
       });
     }
 

@@ -124,6 +124,19 @@ require('../dist/index.js');
     const envPrefix = this.options.envPrefix || '';
     const baseUrlEnv = `${envPrefix}API_BASE_URL`;
 
+    // Clone spec and inject command names for system commands
+    const specWithCommandNames = {
+      ...this.spec,
+      paths: this.spec.paths.map(p => ({
+        ...p,
+        methods: p.methods.map(m => ({
+          ...m,
+          commandName: this.getCommandName(m)
+        }))
+      }))
+    };
+    const specJson = JSON.stringify(specWithCommandNames);
+
     const indexContent = `#!/usr/bin/env node
 import { Command } from 'commander';
 import { registerCommands } from './commands';
@@ -134,6 +147,55 @@ program
   .name('${cliName}')
   .description('${this.spec.info.description || `CLI for ${this.spec.info.title}`}')
   .version('${this.spec.info.version}');
+
+// System command: Search API
+program
+  .command('search-api')
+  .description('Search for API endpoints by keyword')
+  .argument('<keyword>', 'Keyword to search for')
+  .action((keyword) => {
+    const spec = ${specJson};
+    console.log(\`Searching for "\${keyword}" in API operations...\\n\`);
+    let found = false;
+    spec.paths.forEach((p: any) => {
+      p.methods.forEach((m: any) => {
+        const searchText = \`\${m.commandName} \${m.operationId} \${m.summary || ''} \${m.description || ''} \${(m.tags || []).join(' ')}\`.toLowerCase();
+        if (searchText.includes(keyword.toLowerCase())) {
+          console.log(\`- \${m.commandName.padEnd(30)} [\${m.method.toUpperCase()}] \${p.path}\`);
+          if (m.summary) console.log(\`  Summary: \${m.summary}\`);
+          found = true;
+        }
+      });
+    });
+    if (!found) console.log('No matching operations found.');
+  });
+
+// System command: Export Tools JSON (for LLM Function Calling)
+program
+  .command('export-tools-json')
+  .description('Export API definitions as JSON for LLM tool calling')
+  .action(() => {
+    const spec = ${specJson};
+    const tools = spec.paths.flatMap((p: any) => p.methods.map((m: any) => ({
+      type: 'function',
+      function: {
+        name: m.operationId,
+        description: m.summary || m.description || \`Execute \${m.method.toUpperCase()} on \${p.path}\`,
+        parameters: {
+          type: 'object',
+          properties: m.parameters.reduce((acc: any, param: any) => {
+            acc[param.name] = {
+              type: param.type === 'number' ? 'number' : (param.type === 'boolean' ? 'boolean' : 'string'),
+              description: param.description || '',
+            };
+            return acc;
+          }, {}),
+          required: m.parameters.filter((p: any) => p.required).map((p: any) => p.name),
+        },
+      },
+    })));
+    console.log(JSON.stringify(tools, null, 2));
+  });
 
 // Create API client with base URL and auth
 const baseUrl = process.env.${baseUrlEnv} || '${this.options.baseUrl || this.spec.baseUrl || ''}';
@@ -329,20 +391,53 @@ export function buildQuery(params: Record<string, any>): string {
     }
 
     const allMethods: { path: string; method: ParsedMethod }[] = [];
+    const permissions = this.options.config?.permissions;
+
     for (const pathItem of this.spec.paths) {
       for (const method of pathItem.methods) {
-        // Apply filtering
-        if (this.options.includeTags && this.options.includeTags.length > 0) {
+        // 1. Readonly check
+        if (permissions?.readonly && method.method.toLowerCase() !== 'get') {
+          continue;
+        }
+
+        // 2. Allow-list check (CLI options have priority over config)
+        const includeTags = this.options.includeTags;
+        if (includeTags && includeTags.length > 0) {
           const methodTags = method.tags || [];
-          if (!methodTags.some(t => this.options.includeTags!.includes(t))) {
+          if (!methodTags.some(t => includeTags.includes(t))) {
+            continue;
+          }
+        } else if (permissions?.allow?.tags && permissions.allow.tags.length > 0) {
+          const methodTags = method.tags || [];
+          if (!methodTags.some(t => permissions.allow!.tags!.includes(t))) {
             continue;
           }
         }
-        if (this.options.includeOperationIds && this.options.includeOperationIds.length > 0) {
-          if (!method.operationId || !this.options.includeOperationIds.includes(method.operationId)) {
+
+        const includeOps = this.options.includeOperationIds;
+        if (includeOps && includeOps.length > 0) {
+          if (!method.operationId || !includeOps.includes(method.operationId)) {
+            continue;
+          }
+        } else if (permissions?.allow?.operationIds && permissions.allow.operationIds.length > 0) {
+          if (!method.operationId || !permissions.allow.operationIds.includes(method.operationId)) {
             continue;
           }
         }
+
+        // 3. Block-list check
+        if (permissions?.block?.tags && permissions.block.tags.length > 0) {
+          const methodTags = method.tags || [];
+          if (methodTags.some(t => permissions.block!.tags!.includes(t))) {
+            continue;
+          }
+        }
+        if (permissions?.block?.operationIds && permissions.block.operationIds.length > 0) {
+          if (method.operationId && permissions.block.operationIds.includes(method.operationId)) {
+            continue;
+          }
+        }
+
         allMethods.push({ path: pathItem.path, method });
       }
     }
@@ -542,6 +637,37 @@ ${headerParams
     options.push(`  .option('--output <format>', 'Output format: json, table', 'json')`);
     options.push(`  .option('--schema', 'Show API schema and exit')`);
 
+    // Safety confirmation for high-risk operations
+    const highRiskOps = this.options.config?.safety?.highRiskOperations || [];
+    const isHighRisk = highRiskOps.includes(method.operationId || '') || highRiskOps.includes(commandName);
+    const confirmationFlag = this.options.config?.safety?.confirmationFlag || 'force';
+    if (isHighRisk) {
+      options.push(`  .option('--${confirmationFlag}', 'Confirm execution of high-risk operation')`);
+    }
+
+    // Build examples for help text
+    let helpText = '';
+    if (this.options.config?.agent?.includeExamples) {
+      const examples: string[] = [];
+      if (method.example) examples.push(`Example response: ${JSON.stringify(method.example)}`);
+      if (method.examples && method.examples.length > 0) {
+        method.examples.forEach((ex, i) => examples.push(`Example ${i + 1}: ${JSON.stringify(ex)}`));
+      }
+      
+      // Parameter examples
+      const paramExamples = method.parameters
+        .filter(p => p.example !== undefined)
+        .map(p => `  --${kebabCase(p.name)} ${p.example}`);
+      
+      if (paramExamples.length > 0) {
+        examples.push(`Usage example:\n  $ ${this.options.cliName || 'api'} ${commandName} ${paramExamples.join(' ')}`);
+      }
+
+      if (examples.length > 0) {
+        helpText = `\n    .addHelpText('after', \`\\n\${${JSON.stringify(examples.join('\n'))}}\`)`;
+      }
+    }
+
     const content = `import { Command } from 'commander';
 import { request, buildPath, buildQuery } from '../client';
 ${isBinaryDownload ? "import { Readable } from 'node:stream';" : ''}
@@ -549,13 +675,20 @@ ${isBinaryDownload ? "import { Readable } from 'node:stream';" : ''}
 export function register(program: Command, baseUrl: string): void {
   program
     .command('${commandName}')
-    .description('${method.summary || `Execute ${method.method.toUpperCase()} on ${path}`}')
+    .description('${method.summary || `Execute ${method.method.toUpperCase()} on ${path}`}')${helpText}
 ${options.join('\n')}
     .action(async (options) => {
       if (options.schema) {
         console.log(JSON.stringify(${JSON.stringify(method, null, 2)}, null, 2));
         return;
       }
+
+      ${isHighRisk ? `
+      if (!options.${camelCase(confirmationFlag)}) {
+        console.error('Error: This is a high-risk operation. Use --${confirmationFlag} to confirm.');
+        process.exit(1);
+      }
+      ` : ''}
 
       try {
         const currentBaseUrl = options.baseUrl || baseUrl;
@@ -642,9 +775,17 @@ export interface ApiError {
   }
 
   private getCommandName(method: ParsedMethod): string {
+    const reservedCommands = ['search-api', 'export-tools-json', 'help', 'version'];
+    let name = '';
     if (method.operationId) {
-      return kebabCase(method.operationId);
+      name = kebabCase(method.operationId);
+    } else {
+      name = `${method.method}-operation`;
     }
-    return `${method.method}-operation`;
+
+    if (reservedCommands.includes(name)) {
+      return `${name}-api`;
+    }
+    return name;
   }
 }

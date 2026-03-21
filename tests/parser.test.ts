@@ -913,4 +913,40 @@ describe('OpenAPIParser', () => {
       fs.unlinkSync(tempFile);
     });
   });
+
+  describe('Example Extraction', () => {
+    it('should extract examples from operations and parameters', async () => {
+      const spec = JSON.stringify({
+        openapi: '3.0.0',
+        info: { title: 'Example API', version: '1.0.0' },
+        paths: {
+          '/test': {
+            get: {
+              operationId: 'testOp',
+              summary: 'Test summary',
+              'x-example': { foo: 'bar' },
+              parameters: [
+                {
+                  name: 'param1',
+                  in: 'query',
+                  schema: { type: 'string' },
+                  example: 'val1',
+                },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      });
+
+      const tempFile = createTempFile(spec);
+      const result = await parser.parse(tempFile);
+      const method = result.paths[0].methods[0];
+      
+      expect(method.example).toEqual({ foo: 'bar' });
+      expect(method.parameters[0].example).toBe('val1');
+      
+      fs.unlinkSync(tempFile);
+    });
+  });
 });

@@ -39,6 +39,8 @@ export interface ParsedMethod {
   requestBody?: ParsedRequestBody;
   responses: ParsedResponse[];
   security?: string[];
+  example?: any;      // Added
+  examples?: any[];   // Added
 }
 
 export interface ParsedParameter {
@@ -48,6 +50,7 @@ export interface ParsedParameter {
   description?: string;
   schema?: any;
   type: string;
+  example?: any;      // Added
 }
 
 export interface ParsedRequestBody {
@@ -66,6 +69,31 @@ export interface ParsedResponse {
   isBinary?: boolean;
 }
 
+export interface GeneratorConfig {
+  cliName?: string;
+  baseUrl?: string;
+  envPrefix?: string;
+  permissions?: {
+    readonly?: boolean;
+    allow?: {
+      tags?: string[];
+      operationIds?: string[];
+    };
+    block?: {
+      tags?: string[];
+      operationIds?: string[];
+    };
+  };
+  safety?: {
+    highRiskOperations?: string[];
+    confirmationFlag?: string;
+  };
+  agent?: {
+    includeExamples?: boolean;
+    autoExportTools?: boolean;
+  };
+}
+
 export interface GeneratorOptions {
   outputDir: string;
   cliName?: string;
@@ -74,6 +102,8 @@ export interface GeneratorOptions {
   includeTags?: string[];
   includeOperationIds?: string[];
   groupByTag?: boolean;
+  configPath?: string; // Added
+  config?: GeneratorConfig; // Added
 }
 
 export type OpenAPIDocument = OpenAPI.Document;

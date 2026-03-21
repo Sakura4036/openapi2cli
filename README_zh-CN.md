@@ -16,6 +16,35 @@
 - **基于标签的分层**：支持根据 OpenAPI tags 组织二级子命令。
 - **环境变量支持**：通过环境变量注入身份验证凭据。
 - **二进制流支持**：针对文件上传和下载接口进行优化。
+- **Agent 友好**：内置对 LLM 工具调用导出和语义搜索的支持。
+- **开发者控制**：支持声明式权限（允许/禁止）、只读模式及高风险操作确认。
+
+## 配置 (Configuration)
+
+你可以使用 `.openapi2cli.yaml` 文件来自定义生成的 CLI。使用 `-c, --config <path>` 参数指定你的配置文件。
+
+```yaml
+# 示例 .openapi2cli.yaml
+cliName: my-service-cli
+permissions:
+  readonly: false
+  allow:
+    tags: ["users", "pets"]
+  block:
+    operationIds: ["deleteSensitiveData"]
+safety:
+  highRiskOperations: ["delete-user"]
+  confirmationFlag: force
+agent:
+  includeExamples: true
+```
+
+## 系统命令 (System Commands)
+
+每个生成的 CLI 都包含内置的系统命令：
+
+- `search-api <keyword>`：通过关键字搜索 API 端点。
+- `export-tools-json`：导出 API 定义为 JSON 格式，便于 LLM 工具调用（兼容 OpenAI/Claude）。
 
 ## 安装 (Installation)
 
