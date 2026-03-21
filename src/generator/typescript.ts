@@ -164,15 +164,19 @@ export interface RequestOptions {
   path: string;
   headers?: Record<string, string>;
   body?: any;
+  isBinary?: boolean;
 }
 
 export async function request(config: ApiClientConfig, options: RequestOptions): Promise<any> {
   const url = new URL(options.path, config.baseUrl.endsWith('/') ? config.baseUrl : config.baseUrl + '/');
   
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
+
+  if (!(options.body instanceof FormData) && !headers['Content-Type'] && options.method.toUpperCase() !== 'GET') {
+    headers['Content-Type'] = 'application/json';
+  }
 
   // Add authentication from environment variables
   ${securityConfig.interceptor}
@@ -180,7 +184,9 @@ export async function request(config: ApiClientConfig, options: RequestOptions):
   const response = await fetch(url.toString(), {
     method: options.method.toUpperCase(),
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: (options.body instanceof FormData || options.body?.pipe) 
+      ? options.body 
+      : (options.body ? JSON.stringify(options.body) : undefined),
   });
 
   if (!response.ok) {
@@ -189,6 +195,10 @@ export async function request(config: ApiClientConfig, options: RequestOptions):
     (error as any).status = response.status;
     (error as any).data = errorData;
     throw error;
+  }
+
+  if (options.isBinary) {
+    return response.body;
   }
 
   return response.json();
@@ -287,6 +297,17 @@ export function buildQuery(params: Record<string, any>): string {
     headers['Authorization'] = \`Basic \${credentials}\`;
   }`);
           break;
+
+        case 'oauth2':
+        case 'openIdConnect':
+          interfaces.push(`// ${scheme.name}: ${scheme.type} authentication`);
+          interceptors.push(`
+  // ${scheme.name}: ${scheme.type}
+  const ${scheme.name}Token = process.env.${envVar};
+  if (${scheme.name}Token) {
+    headers['Authorization'] = \`Bearer \${${scheme.name}Token}\`;
+  }`);
+          break;
       }
     }
 
@@ -307,17 +328,79 @@ export function buildQuery(params: Record<string, any>): string {
       fs.mkdirSync(commandsDir, { recursive: true });
     }
 
+    const allMethods: { path: string; method: ParsedMethod }[] = [];
+    for (const pathItem of this.spec.paths) {
+      for (const method of pathItem.methods) {
+        // Apply filtering
+        if (this.options.includeTags && this.options.includeTags.length > 0) {
+          const methodTags = method.tags || [];
+          if (!methodTags.some(t => this.options.includeTags!.includes(t))) {
+            continue;
+          }
+        }
+        if (this.options.includeOperationIds && this.options.includeOperationIds.length > 0) {
+          if (!method.operationId || !this.options.includeOperationIds.includes(method.operationId)) {
+            continue;
+          }
+        }
+        allMethods.push({ path: pathItem.path, method });
+      }
+    }
+
     // Generate index file for commands
     const commandImports: string[] = [];
     const commandRegistrations: string[] = [];
 
-    for (const pathItem of this.spec.paths) {
-      for (const method of pathItem.methods) {
-        const commandName = this.getCommandName(method);
+    if (this.options.groupByTag) {
+      const tagGroups: Record<string, { path: string; method: ParsedMethod }[]> = {};
+      const noTagMethods: { path: string; method: ParsedMethod }[] = [];
+
+      for (const item of allMethods) {
+        if (item.method.tags && item.method.tags.length > 0) {
+          for (const tag of item.method.tags) {
+            if (!tagGroups[tag]) tagGroups[tag] = [];
+            tagGroups[tag].push(item);
+          }
+        } else {
+          noTagMethods.push(item);
+        }
+      }
+
+      for (const [tag, items] of Object.entries(tagGroups)) {
+        const tagCmdName = kebabCase(tag);
+        const tagVarName = camelCase(tag) + 'Cmd';
+        commandRegistrations.push(`  const ${tagVarName} = program.command('${tagCmdName}').description('Commands for ${tag}');`);
+        
+        for (const item of items) {
+          const commandName = this.getCommandName(item.method);
+          const commandFile = `${tagCmdName}_${commandName.replace(/-/g, '_')}`;
+          
+          this.generateCommandFile(commandsDir, item.path, item.method, commandName, commandFile);
+
+          commandImports.push(
+            `import { register as register_${commandFile} } from './${commandFile}';`
+          );
+          commandRegistrations.push(`  register_${commandFile}(${tagVarName}, baseUrl);`);
+        }
+      }
+
+      for (const item of noTagMethods) {
+        const commandName = this.getCommandName(item.method);
+        const commandFile = commandName.replace(/-/g, '_');
+        this.generateCommandFile(commandsDir, item.path, item.method, commandName, commandFile);
+
+        commandImports.push(
+          `import { register as register_${commandFile} } from './${commandFile}';`
+        );
+        commandRegistrations.push(`  register_${commandFile}(program, baseUrl);`);
+      }
+    } else {
+      for (const item of allMethods) {
+        const commandName = this.getCommandName(item.method);
         const commandFile = commandName.replace(/-/g, '_');
 
         // Generate individual command file
-        this.generateCommandFile(commandsDir, pathItem.path, method, commandName);
+        this.generateCommandFile(commandsDir, item.path, item.method, commandName, commandFile);
 
         commandImports.push(
           `import { register as register_${commandFile} } from './${commandFile}';`
@@ -341,14 +424,19 @@ ${commandRegistrations.join('\n')}
     commandsDir: string,
     path: string,
     method: ParsedMethod,
-    commandName: string
+    commandName: string,
+    fileNamePrefix?: string
   ): void {
-    const fileName = commandName.replace(/-/g, '_') + '.ts';
+    const fileName = (fileNamePrefix || commandName.replace(/-/g, '_')) + '.ts';
     const filePath = nodePath.join(commandsDir, fileName);
 
     const pathParams = method.parameters.filter((p) => p.in === 'path');
     const queryParams = method.parameters.filter((p) => p.in === 'query');
     const headerParams = method.parameters.filter((p) => p.in === 'header');
+
+    const isFileUpload = method.requestBody?.contentType === 'multipart/form-data';
+    const isBinaryUpload = method.requestBody?.isBinary && !isFileUpload;
+    const isBinaryDownload = method.responses.some(r => r.isBinary);
 
     // Build path with parameters
     const pathTemplate = path;
@@ -397,7 +485,27 @@ ${headerParams
 
     // Build request body
     let bodyBuilder = '';
-    if (method.requestBody) {
+    if (isFileUpload) {
+      bodyBuilder = `
+      const body = new FormData();
+      if (options.body) {
+        const bodyObj = JSON.parse(options.body);
+        for (const [key, value] of Object.entries(bodyObj)) {
+          body.append(key, value as any);
+        }
+      }
+      if (options.file) {
+        const fs = await import('fs');
+        const { blob } = await import('node:stream/consumers');
+        const fileStream = fs.createReadStream(options.file);
+        // In Node 18+ fetch supports Blob/File in FormData
+        body.append('file', await blob(fileStream) as any, options.file);
+      }`;
+    } else if (isBinaryUpload) {
+      bodyBuilder = `
+      const fs = await import('fs');
+      const body = options.file ? fs.createReadStream(options.file) : (options.body ? JSON.parse(options.body) : undefined);`;
+    } else if (method.requestBody) {
       bodyBuilder = `
       const body = options.body ? JSON.parse(options.body) : undefined;`;
     }
@@ -405,15 +513,9 @@ ${headerParams
     // Build the command options
     const options: string[] = [];
     for (const param of method.parameters) {
-      const paramName = camelCase(param.name);
       const flagName = kebabCase(param.name);
-      const required = param.required;
 
-      if (param.in === 'path') {
-        options.push(
-          `  .requiredOption('--${flagName} <value>', '${param.description || param.name}')`
-        );
-      } else if (param.required) {
+      if (param.in === 'path' || param.required) {
         options.push(
           `  .requiredOption('--${flagName} <value>', '${param.description || param.name}')`
         );
@@ -426,14 +528,23 @@ ${headerParams
       options.push(
         `  .option('--body <json>', 'Request body as JSON string', (value) => value)`
       );
+      if (isFileUpload || isBinaryUpload) {
+        options.push(`  .option('--file <path>', 'File to upload')`);
+      }
+    }
+
+    if (isBinaryDownload) {
+      options.push(`  .option('--output-file <path>', 'Save response to file')`);
     }
 
     // Common options
     options.push(`  .option('--base-url <url>', 'Override base URL')`);
     options.push(`  .option('--output <format>', 'Output format: json, table', 'json')`);
+    options.push(`  .option('--schema', 'Show API schema and exit')`);
 
     const content = `import { Command } from 'commander';
 import { request, buildPath, buildQuery } from '../client';
+${isBinaryDownload ? "import { Readable } from 'node:stream';" : ''}
 
 export function register(program: Command, baseUrl: string): void {
   program
@@ -441,6 +552,11 @@ export function register(program: Command, baseUrl: string): void {
     .description('${method.summary || `Execute ${method.method.toUpperCase()} on ${path}`}')
 ${options.join('\n')}
     .action(async (options) => {
+      if (options.schema) {
+        console.log(JSON.stringify(${JSON.stringify(method, null, 2)}, null, 2));
+        return;
+      }
+
       try {
         const currentBaseUrl = options.baseUrl || baseUrl;
         const config = { baseUrl: currentBaseUrl };
@@ -449,13 +565,24 @@ ${queryBuilder}
 ${headerBuilder}
 ${bodyBuilder}
       
-      const data = await request(config, {
+      const response = await request(config, {
         method: '${method.method}',
         path: url,
         headers: ${headerParams.length > 0 ? 'customHeaders' : 'undefined'},
         body: ${method.requestBody ? 'body' : 'undefined'},
+        isBinary: ${isBinaryDownload ? 'true' : 'false'},
       });
 
+      if (options.outputFile) {
+        const fs = await import('fs');
+        const { finished } = await import('node:stream/promises');
+        const fileStream = fs.createWriteStream(options.outputFile);
+        await finished(Readable.fromWeb(response as any).pipe(fileStream));
+        console.log(\`File saved to \${options.outputFile}\`);
+        return;
+      }
+
+      const data = response;
       if (options.output === 'json') {
         console.log(JSON.stringify(data, null, 2));
       } else {

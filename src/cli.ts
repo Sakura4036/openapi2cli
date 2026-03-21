@@ -17,6 +17,9 @@ program
   .option('--base-url <url>', 'Override base URL for API requests')
   .option('--name <name>', 'Name for the generated CLI (default: derived from API title)')
   .option('--env-prefix <prefix>', 'Prefix for environment variables')
+  .option('--include-tags <tags>', 'Comma-separated list of tags to include')
+  .option('--include-ops <ids>', 'Comma-separated list of operation IDs to include')
+  .option('--group-by-tag', 'Enable tag-based subcommand hierarchy')
   .action(async (input: string, options: any) => {
     try {
       console.log(`Parsing OpenAPI specification from: ${input}`);
@@ -51,6 +54,9 @@ program
         cliName: options.name || kebabCase(spec.info.title),
         baseUrl: options.baseUrl || spec.baseUrl,
         envPrefix: options.envPrefix,
+        includeTags: options.includeTags ? options.includeTags.split(',').map((s: string) => s.trim()) : undefined,
+        includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim()) : undefined,
+        groupByTag: options.groupByTag,
       });
 
       console.log(`Generating CLI to: ${options.output}`);

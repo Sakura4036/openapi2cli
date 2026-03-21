@@ -342,11 +342,19 @@ export class OpenAPIParser {
       }
     }
 
+    const isBinary = contentType === 'application/octet-stream' || 
+                    contentType.startsWith('image/') || 
+                    contentType.startsWith('video/') || 
+                    contentType.startsWith('audio/') || 
+                    contentType === 'application/pdf' ||
+                    contentType === 'multipart/form-data';
+                    
     return {
       required: requestBody.required || false,
       description: requestBody.description,
       contentType,
       schema,
+      isBinary,
     };
   }
 
@@ -383,11 +391,20 @@ export class OpenAPIParser {
         }
       }
 
+      const isBinary = contentType ? (
+        contentType === 'application/octet-stream' || 
+        contentType.startsWith('image/') || 
+        contentType.startsWith('video/') || 
+        contentType.startsWith('audio/') || 
+        contentType === 'application/pdf'
+      ) : false;
+      
       responses.push({
         statusCode,
         description: typedResponse.description,
         contentType,
         schema,
+        isBinary,
       });
     }
 
@@ -400,40 +417,30 @@ export class OpenAPIParser {
     }
 
     // Handle Swagger 2.x style parameters
-    if (schema.type && !schema.schema) {
-      switch (schema.type) {
-        case 'string':
-          return 'string';
-        case 'number':
-        case 'integer':
-          return 'number';
-        case 'boolean':
-          return 'boolean';
-        case 'array':
-          return 'array';
-        case 'object':
-          return 'object';
-        default:
-          return 'string';
-      }
+    if (schema.type && !schema.schema && !Array.isArray(schema.type)) {
+      return this.mapType(schema.type);
+    }
+
+    // OpenAPI 3.1 supports type as an array
+    if (Array.isArray(schema.type)) {
+      // Find the first non-null type
+      const nonNullType = schema.type.find((t: string) => t !== 'null');
+      return this.mapType(nonNullType || 'string');
     }
 
     if (schema.type) {
-      switch (schema.type) {
-        case 'string':
-          return 'string';
-        case 'number':
-        case 'integer':
-          return 'number';
-        case 'boolean':
-          return 'boolean';
-        case 'array':
-          return 'array';
-        case 'object':
-          return 'object';
-        default:
-          return 'string';
-      }
+      return this.mapType(schema.type);
+    }
+
+    // Handle combined schemas (oneOf, anyOf, allOf)
+    if (schema.oneOf && schema.oneOf.length > 0) {
+      return this.getTypeFromSchema(schema.oneOf[0]);
+    }
+    if (schema.anyOf && schema.anyOf.length > 0) {
+      return this.getTypeFromSchema(schema.anyOf[0]);
+    }
+    if (schema.allOf && schema.allOf.length > 0) {
+      return this.getTypeFromSchema(schema.allOf[0]);
     }
 
     if (schema.$ref) {
@@ -441,5 +448,23 @@ export class OpenAPIParser {
     }
 
     return 'string';
+  }
+
+  private mapType(type: string): string {
+    switch (type) {
+      case 'string':
+        return 'string';
+      case 'number':
+      case 'integer':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      case 'array':
+        return 'array';
+      case 'object':
+        return 'object';
+      default:
+        return 'string';
+    }
   }
 }

@@ -44,6 +44,9 @@ openapi2cli https://api.example.com/openapi.json -o ./my-cli
 | `--base-url <url>` | Override base URL for API requests |
 | `--name <name>` | Name for the generated CLI (default: derived from API title) |
 | `--env-prefix <prefix>` | Prefix for environment variables |
+| `--include-tags <tags>` | Comma-separated list of tags to include |
+| `--include-ops <ids>` | Comma-separated list of operation IDs to include |
+| `--group-by-tag` | Enable tag-based subcommand hierarchy |
 | `-h, --help` | Show help information |
 | `-V, --version` | Show version number |
 
@@ -58,6 +61,9 @@ openapi2cli ./api.yaml -o ./my-api --base-url https://api.production.com
 
 # Generate CLI with custom environment prefix
 openapi2cli ./api.json -o ./my-cli --env-prefix MY_API
+
+# Generate CLI with tag-based hierarchy and filtering
+openapi2cli https://api.example.com/openapi.json -o ./my-cli --group-by-tag --include-tags "User,Order"
 ```
 
 ## Generated CLI Usage
@@ -114,6 +120,15 @@ my-cli get-users --base-url https://staging.api.com
 
 # Output in different formats
 my-cli get-users --output json
+
+# View API schema for a specific command
+my-cli get-users --schema
+
+# Upload a file (if supported by the endpoint)
+my-cli upload-image --file ./photo.jpg --body '{"description": "My photo"}'
+
+# Download a file (if supported by the endpoint)
+my-cli download-report --output-file ./report.pdf
 ```
 
 ## How It Works
@@ -145,6 +160,8 @@ my-cli get-users --output json
 | API Key (Header) | `<SCHEME_NAME>_TOKEN` | API key in header |
 | API Key (Query) | `<SCHEME_NAME>_TOKEN` | API key in query parameter |
 | Basic | `<SCHEME_NAME>_USERNAME`, `<SCHEME_NAME>_PASSWORD` | HTTP Basic auth |
+| OAuth2 | `<SCHEME_NAME>_TOKEN` | OAuth2 Bearer token |
+| OpenID Connect | `<SCHEME_NAME>_TOKEN` | OpenID Connect Bearer token |
 
 ## Development
 

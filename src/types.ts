@@ -55,6 +55,7 @@ export interface ParsedRequestBody {
   description?: string;
   contentType: string;
   schema?: any;
+  isBinary?: boolean;
 }
 
 export interface ParsedResponse {
@@ -62,6 +63,7 @@ export interface ParsedResponse {
   description?: string;
   contentType?: string;
   schema?: any;
+  isBinary?: boolean;
 }
 
 export interface GeneratorOptions {
@@ -69,6 +71,9 @@ export interface GeneratorOptions {
   cliName?: string;
   baseUrl?: string;
   envPrefix?: string;
+  includeTags?: string[];
+  includeOperationIds?: string[];
+  groupByTag?: boolean;
 }
 
 export type OpenAPIDocument = OpenAPI.Document;

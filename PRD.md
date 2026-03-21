@@ -46,6 +46,7 @@
 | TypeScript CLI 生成 | 生成基于 Commander.js 的 CLI 工具 | P0 |
 | 命令自动生成 | 根据 OpenAPI paths 自动生成命令 | P0 |
 | 参数自动映射 | path/query/header 参数自动映射为 CLI 参数 | P0 |
+| 子命令分层 | 支持根据 Tag 将命令组织为二级子命令 | P1 |
 
 ### 3.3 认证支持
 
@@ -64,6 +65,16 @@
 | Base URL 覆盖 | 支持通过参数覆盖 base URL | P1 |
 | 自定义 CLI 名称 | 指定生成的 CLI 工具名称 | P1 |
 | 环境变量前缀 | 自定义环境变量前缀 | P2 |
+| 接口过滤 | 支持通过 Tag 或 Operation ID 列表过滤生成的接口 | P1 |
+| 输出路径指定 | 支持自定义代码生成路径 | P1 |
+
+### 3.5 特殊功能支持
+
+| 功能 | 描述 | 优先级 |
+|------|------|--------|
+| 文件上传 | 支持 multipart/form-data 类型的接口，允许通过文件路径上传 | P1 |
+| 文件下载 | 支持二进制流下载接口，允许指定保存路径 | P1 |
+| Schema 查看 | 支持在生成的 CLI 中查看特定接口的详细 Schema 信息 | P1 |
 
 ---
 
@@ -164,15 +175,21 @@ openapi2cli/
 - [x] 基础认证支持（Bearer/API Key/Basic）
 - [x] 环境变量注入
 
-### Phase 2 - 完善 (Todo)
+### Phase 2 - 功能增强 (Done ✅)
+- [x] 根据 Tag 生成二级子命令
+- [x] 支持 Operation ID 作为命令名称
+- [x] 支持 Tag 和 Operation ID 列表过滤
+- [x] 支持文件上传和下载接口优化
+- [x] 支持查看 API 接口详细 Schema
+
+### Phase 3 - 扩展 (Done ✅)
+- [x] 支持 OpenAPI 3.1
+- [x] OAuth2 支持
+
+### Phase 4 - 完善 (Todo)
 - [ ] 单元测试
 - [ ] 更多示例
 - [ ] npm 发布
-
-### Phase 3 - 扩展 (Todo)
-- [ ] Python 代码生成
-- [ ] 支持 OpenAPI 3.1
-- [ ] OAuth2 支持
 
 ---
 
