@@ -125,7 +125,7 @@ my-cli create-user --name "John" --email "john@example.com"
 | 开发语言 | TypeScript |
 | CLI 框架 | Commander.js |
 | OpenAPI 解析 | @apidevtools/swagger-parser |
-| HTTP 客户端 | Axios |
+| HTTP 客户端 | Native Fetch (Node.js 18+) |
 
 ### 6.2 项目结构
 
@@ -176,23 +176,5 @@ openapi2cli/
 
 ---
 
-## 9. 成功指标
-
-| 指标 | 目标 |
-|------|------|
-| GitHub Stars | 100+ |
-| npm 周下载量 | 1000+ |
-| 支持命令数 | 20+ 主流 API |
-
----
-
-## 10. 团队与资源
-
-- **开发者：** Claude Code (AI)
-- **维护者：** 黄佳文
-- **许可证：** MIT
-- **仓库：** https://github.com/Sakura4036/openapi2cli
-
----
 
 *最后更新：2026-03-21*

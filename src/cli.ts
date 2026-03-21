@@ -67,8 +67,9 @@ program
 
       if (spec.securitySchemes.length > 0) {
         console.log('\nAuthentication:');
+        const envPrefix = options.envPrefix || '';
         for (const scheme of spec.securitySchemes) {
-          console.log(`  export ${scheme.envVarName}="your-token-here"`);
+          console.log(`  export ${envPrefix}${scheme.envVarName}="your-token-here"`);
         }
       }
     } catch (error: any) {

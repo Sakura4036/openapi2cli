@@ -8,7 +8,7 @@ import {
   ParsedRequestBody,
   ParsedResponse,
 } from './types';
-import { camelCase, upperCase } from 'lodash';
+import { camelCase, upperCase, snakeCase } from 'lodash';
 
 // Internal document type that handles both OpenAPI 3.x and Swagger 2.x
 interface OpenAPIDocumentInternal {
@@ -191,8 +191,17 @@ export class OpenAPIParser {
       }
 
       // Create a more specific env var name based on scheme name
-      const prefix = upperCase(camelCase(name)).replace(/\s+/g, '_');
-      envVarName = `${prefix}_TOKEN`;
+      // For apiKey, prefer the actual parameter name (header/query key)
+      const baseName = (typedScheme.type === 'apiKey' && typedScheme.name)
+        ? typedScheme.name
+        : name;
+
+      // Convert to UPPER_SNAKE_CASE
+      const prefix = snakeCase(baseName).toUpperCase();
+      
+      // If it's a generic name like "auth" or "bearer", append a suffix
+      const isGeneric = ['auth', 'bearer', 'token', 'key'].includes(prefix.toLowerCase());
+      envVarName = isGeneric ? `${prefix}_TOKEN` : prefix;
 
       schemes.push({
         name,

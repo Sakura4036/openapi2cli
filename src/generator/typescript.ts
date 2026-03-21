@@ -59,7 +59,6 @@ export class TypeScriptGenerator {
       },
       dependencies: {
         commander: '^12.0.0',
-        axios: '^1.6.0',
       },
       devDependencies: {
         '@types/node': '^20.10.0',
@@ -122,10 +121,12 @@ require('../dist/index.js');
 
     const cliName = this.options.cliName || kebabCase(this.spec.info.title);
 
+    const envPrefix = this.options.envPrefix || '';
+    const baseUrlEnv = `${envPrefix}API_BASE_URL`;
+
     const indexContent = `#!/usr/bin/env node
 import { Command } from 'commander';
 import { registerCommands } from './commands';
-import { createApiClient } from './client';
 
 const program = new Command();
 
@@ -135,7 +136,7 @@ program
   .version('${this.spec.info.version}');
 
 // Create API client with base URL and auth
-const baseUrl = process.env.API_BASE_URL || '${this.options.baseUrl || this.spec.baseUrl || ''}';
+const baseUrl = process.env.${baseUrlEnv} || '${this.options.baseUrl || this.spec.baseUrl || ''}';
 
 // Register all commands
 registerCommands(program, baseUrl);
@@ -154,30 +155,43 @@ program.parse();
     const securityConfig = this.generateSecurityConfig();
     const envPrefix = this.options.envPrefix || '';
 
-    const clientContent = `import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-
-${securityConfig.interface}
-
-export interface ApiClientConfig {
+    const clientContent = `export interface ApiClientConfig {
   baseUrl: string;
-  ${securityConfig.configProps}
 }
 
-export function createApiClient(config: ApiClientConfig): AxiosInstance {
-  const client = axios.create({
-    baseURL: config.baseUrl,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+export interface RequestOptions {
+  method: string;
+  path: string;
+  headers?: Record<string, string>;
+  body?: any;
+}
+
+export async function request(config: ApiClientConfig, options: RequestOptions): Promise<any> {
+  const url = new URL(options.path, config.baseUrl.endsWith('/') ? config.baseUrl : config.baseUrl + '/');
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  // Add authentication from environment variables
+  ${securityConfig.interceptor}
+
+  const response = await fetch(url.toString(), {
+    method: options.method.toUpperCase(),
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  // Add authentication interceptor
-  client.interceptors.request.use((requestConfig) => {
-    ${securityConfig.interceptor}
-    return requestConfig;
-  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(\`API Error: \${response.status} \${response.statusText}\`);
+    (error as any).status = response.status;
+    (error as any).data = errorData;
+    throw error;
+  }
 
-  return client;
+  return response.json();
 }
 
 // Helper to handle path parameters
@@ -226,55 +240,52 @@ export function buildQuery(params: Record<string, any>): string {
     const props: string[] = [];
     const interceptors: string[] = [];
 
+    const envPrefix = this.options.envPrefix || '';
+
     for (const scheme of this.spec.securitySchemes) {
-      const envVar = scheme.envVarName;
+      const envVar = `${envPrefix}${scheme.envVarName}`;
 
       switch (scheme.type) {
         case 'bearer':
           interfaces.push(`// ${scheme.name}: Bearer token authentication`);
           interceptors.push(`
-    // ${scheme.name}: Bearer token
-    const ${scheme.name}Token = process.env.${envVar};
-    if (${scheme.name}Token) {
-      requestConfig.headers = requestConfig.headers || {};
-      requestConfig.headers['Authorization'] = \`Bearer \${${scheme.name}Token}\`;
-    }`);
+  // ${scheme.name}: Bearer token
+  const ${scheme.name}Token = process.env.${envVar};
+  if (${scheme.name}Token) {
+    headers['Authorization'] = \`Bearer \${${scheme.name}Token}\`;
+  }`);
           break;
 
         case 'apiKey':
           if (scheme.in === 'header' && scheme.paramName) {
             interfaces.push(`// ${scheme.name}: API Key in header (${scheme.paramName})`);
             interceptors.push(`
-    // ${scheme.name}: API Key in header
-    const ${scheme.name}Key = process.env.${envVar};
-    if (${scheme.name}Key) {
-      requestConfig.headers = requestConfig.headers || {};
-      requestConfig.headers['${scheme.paramName}'] = ${scheme.name}Key;
-    }`);
+  // ${scheme.name}: API Key in header
+  const ${scheme.name}Key = process.env.${envVar};
+  if (${scheme.name}Key) {
+    headers['${scheme.paramName}'] = ${scheme.name}Key;
+  }`);
           } else if (scheme.in === 'query' && scheme.paramName) {
             interfaces.push(`// ${scheme.name}: API Key in query parameter (${scheme.paramName})`);
             interceptors.push(`
-    // ${scheme.name}: API Key in query
-    const ${scheme.name}Key = process.env.${envVar};
-    if (${scheme.name}Key && requestConfig.params) {
-      requestConfig.params['${scheme.paramName}'] = ${scheme.name}Key;
-    } else if (${scheme.name}Key) {
-      requestConfig.params = { '${scheme.paramName}': ${scheme.name}Key };
-    }`);
+  // ${scheme.name}: API Key in query
+  const ${scheme.name}Key = process.env.${envVar};
+  if (${scheme.name}Key) {
+    url.searchParams.set('${scheme.paramName}', ${scheme.name}Key);
+  }`);
           }
           break;
 
         case 'basic':
           interfaces.push(`// ${scheme.name}: Basic authentication`);
           interceptors.push(`
-    // ${scheme.name}: Basic auth
-    const ${scheme.name}Username = process.env.${envVar};
-    const ${scheme.name}Password = process.env.${envVar.replace('_TOKEN', '_PASSWORD')};
-    if (${scheme.name}Username && ${scheme.name}Password) {
-      const credentials = Buffer.from(\`\${${scheme.name}Username}:\${${scheme.name}Password}\`).toString('base64');
-      requestConfig.headers = requestConfig.headers || {};
-      requestConfig.headers['Authorization'] = \`Basic \${credentials}\`;
-    }`);
+  // ${scheme.name}: Basic auth
+  const ${scheme.name}Username = process.env.${envVar};
+  const ${scheme.name}Password = process.env.${envVar.replace('_TOKEN', '_PASSWORD')};
+  if (${scheme.name}Username && ${scheme.name}Password) {
+    const credentials = Buffer.from(\`\${${scheme.name}Username}:\${${scheme.name}Password}\`).toString('base64');
+    headers['Authorization'] = \`Basic \${credentials}\`;
+  }`);
           break;
       }
     }
@@ -311,17 +322,14 @@ export function buildQuery(params: Record<string, any>): string {
         commandImports.push(
           `import { register as register_${commandFile} } from './${commandFile}';`
         );
-        commandRegistrations.push(`  register_${commandFile}(program, client);`);
+        commandRegistrations.push(`  register_${commandFile}(program, baseUrl);`);
       }
     }
 
     const indexContent = `import { Command } from 'commander';
-import { createApiClient } from '../client';
 ${commandImports.join('\n')}
 
 export function registerCommands(program: Command, baseUrl: string): void {
-  const client = createApiClient({ baseUrl });
-
 ${commandRegistrations.join('\n')}
 }
 `;
@@ -362,8 +370,8 @@ ${pathParams.map((p) => `        ${camelCase(p.name)}: options.${camelCase(p.nam
       const queryParams = {
 ${queryParams
   .map((p) => {
-    const conditional = p.required ? '' : `if (options.${camelCase(p.name)} !== undefined) `;
-    return `        ${conditional}['${p.name}']: options.${camelCase(p.name)},`;
+    const value = `options.${camelCase(p.name)}`;
+    return `        ...(${value} !== undefined ? { ['${p.name}']: ${value} } : {} ),`;
   })
   .join('\n')}
       };
@@ -378,7 +386,12 @@ ${queryParams
     if (headerParams.length > 0) {
       headerBuilder = `
       const customHeaders: Record<string, string> = {
-${headerParams.map((p) => `        '${p.name}': options.${camelCase(p.name)},`).join('\n')}
+${headerParams
+  .map((p) => {
+    const value = `options.${camelCase(p.name)}`;
+    return `        ...(${value} !== undefined ? { ['${p.name}']: ${value} } : {} ),`;
+  })
+  .join('\n')}
       };`;
     }
 
@@ -420,43 +433,46 @@ ${headerParams.map((p) => `        '${p.name}': options.${camelCase(p.name)},`).
     options.push(`  .option('--output <format>', 'Output format: json, table', 'json')`);
 
     const content = `import { Command } from 'commander';
-import { AxiosInstance } from 'axios';
-import { buildPath, buildQuery } from '../client';
+import { request, buildPath, buildQuery } from '../client';
 
-export function register(program: Command, client: AxiosInstance): void {
+export function register(program: Command, baseUrl: string): void {
   program
     .command('${commandName}')
     .description('${method.summary || `Execute ${method.method.toUpperCase()} on ${path}`}')
 ${options.join('\n')}
     .action(async (options) => {
       try {
+        const currentBaseUrl = options.baseUrl || baseUrl;
+        const config = { baseUrl: currentBaseUrl };
 ${pathBuilder}
 ${queryBuilder}
 ${headerBuilder}
 ${bodyBuilder}
+      
+      const data = await request(config, {
+        method: '${method.method}',
+        path: url,
+        headers: ${headerParams.length > 0 ? 'customHeaders' : 'undefined'},
+        body: ${method.requestBody ? 'body' : 'undefined'},
+      });
 
-        const baseUrl = options.baseUrl || client.defaults.baseURL;
-        const requestClient = options.baseUrl
-          ? require('../client').createApiClient({ baseUrl })
-          : client;
-
-        const response = await requestClient.${method.method}(url${method.requestBody ? ', body' : ''}${headerBuilder ? ', { headers: customHeaders }' : ''});
-
-        if (options.output === 'json') {
-          console.log(JSON.stringify(response.data, null, 2));
-        } else {
-          console.log(response.data);
-        }
-      } catch (error: any) {
-        if (error.response) {
-          console.error('API Error:', error.response.status, error.response.statusText);
-          console.error(JSON.stringify(error.response.data, null, 2));
-        } else {
-          console.error('Error:', error.message);
-        }
-        process.exit(1);
+      if (options.output === 'json') {
+        console.log(JSON.stringify(data, null, 2));
+      } else {
+        console.log(data);
       }
-    });
+    } catch (error: any) {
+      if (error.status) {
+        console.error('API Error:', error.status, error.message);
+        if (error.data) {
+          console.error(JSON.stringify(error.data, null, 2));
+        }
+      } else {
+        console.error('Error:', error.message);
+      }
+      process.exit(1);
+    }
+  });
 }
 `;
 
