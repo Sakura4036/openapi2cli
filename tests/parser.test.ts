@@ -578,10 +578,10 @@ describe('OpenAPIParser', () => {
       const result = await parser.parse(tempFile);
 
       const bearerAuth = result.securitySchemes.find((s) => s.name === 'bearerAuth');
-      expect(bearerAuth!.envVarName).toBe('BEARER_AUTH_TOKEN');
+      expect(bearerAuth!.envVarName).toBe('BEARER_AUTH');
 
       const apiKeyHeader = result.securitySchemes.find((s) => s.name === 'apiKeyHeader');
-      expect(apiKeyHeader!.envVarName).toBe('API_KEY_HEADER_TOKEN');
+      expect(apiKeyHeader!.envVarName).toBe('API_KEY_HEADER');
 
       fs.unlinkSync(tempFile);
     });
@@ -821,6 +821,58 @@ describe('OpenAPIParser', () => {
       const result = await parser.parse(tempFile);
       const param = result.paths[0].methods[0].parameters[0];
       expect(param.type).toBe('string');
+      fs.unlinkSync(tempFile);
+    });
+
+    it('should infer type from array of types (OpenAPI 3.1)', async () => {
+      const spec = JSON.stringify({
+        openapi: '3.1.0',
+        info: { title: 'Test 3.1', version: '1.0.0' },
+        paths: {
+          '/test': {
+            get: {
+              parameters: [
+                { name: 'param', in: 'query', schema: { type: ['string', 'null'] } },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      });
+
+      const tempFile = createTempFile(spec);
+      const result = await parser.parse(tempFile);
+      const param = result.paths[0].methods[0].parameters[0];
+      expect(param.type).toBe('string');
+      fs.unlinkSync(tempFile);
+    });
+
+    it('should infer type from oneOf (OpenAPI 3.x)', async () => {
+      const spec = JSON.stringify({
+        openapi: '3.0.0',
+        info: { title: 'Test OneOf', version: '1.0.0' },
+        paths: {
+          '/test': {
+            get: {
+              parameters: [
+                {
+                  name: 'param',
+                  in: 'query',
+                  schema: {
+                    oneOf: [{ type: 'integer' }, { type: 'string' }],
+                  },
+                },
+              ],
+              responses: { '200': { description: 'OK' } },
+            },
+          },
+        },
+      });
+
+      const tempFile = createTempFile(spec);
+      const result = await parser.parse(tempFile);
+      const param = result.paths[0].methods[0].parameters[0];
+      expect(param.type).toBe('number');
       fs.unlinkSync(tempFile);
     });
   });

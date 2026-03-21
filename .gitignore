@@ -4,3 +4,7 @@ dist/
 .DS_Store
 .env
 *.tsbuildinfo
+test-*/
+test-cli/
+test-cli-filtered/
+test-cli-31/

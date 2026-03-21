@@ -1,0 +1,79 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Uber API",
+    "description": "Move points in the world",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.uber.com/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://login.uber.com/oauth/authorize",
+            "tokenUrl": "https://login.uber.com/oauth/token",
+            "scopes": {
+              "profile": "Access your basic profile information",
+              "history": "Access your trip history"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/products": {
+      "get": {
+        "summary": "Product Types",
+        "description": "The Products endpoint returns information about the Uber products offered at a given location.",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An array of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "product_id": { "type": "string" },
+                      "display_name": { "type": "string" },
+                      "capacity": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          { "oauth2": ["profile"] }
+        ]
+      }
+    }
+  }
+}

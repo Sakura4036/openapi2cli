@@ -573,13 +573,17 @@ ${bodyBuilder}
         isBinary: ${isBinaryDownload ? 'true' : 'false'},
       });
 
-      if (options.outputFile) {
+      ${
+        isBinaryDownload
+          ? `if (options.outputFile) {
         const fs = await import('fs');
         const { finished } = await import('node:stream/promises');
         const fileStream = fs.createWriteStream(options.outputFile);
         await finished(Readable.fromWeb(response as any).pipe(fileStream));
         console.log(\`File saved to \${options.outputFile}\`);
         return;
+      }`
+          : ''
       }
 
       const data = response;

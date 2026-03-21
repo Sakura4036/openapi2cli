@@ -186,10 +186,10 @@ openapi2cli/
 - [x] 支持 OpenAPI 3.1
 - [x] OAuth2 支持
 
-### Phase 4 - 完善 (Todo)
-- [ ] 单元测试
-- [ ] 更多示例
-- [ ] npm 发布
+### Phase 4 - 完善 (Done ✅)
+- [x] 单元测试
+- [x] 更多示例
+- [x] npm 发布
 
 ---
 

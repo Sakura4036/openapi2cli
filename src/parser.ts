@@ -191,10 +191,7 @@ export class OpenAPIParser {
       }
 
       // Create a more specific env var name based on scheme name
-      // For apiKey, prefer the actual parameter name (header/query key)
-      const baseName = (typedScheme.type === 'apiKey' && typedScheme.name)
-        ? typedScheme.name
-        : name;
+      const baseName = name;
 
       // Convert to UPPER_SNAKE_CASE
       const prefix = snakeCase(baseName).toUpperCase();
