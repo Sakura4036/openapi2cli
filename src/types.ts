@@ -101,6 +101,8 @@ export interface GeneratorOptions {
   envPrefix?: string;
   includeTags?: string[];
   includeOperationIds?: string[];
+  excludeTags?: string[];
+  excludeOperationIds?: string[];
   groupByTag?: boolean;
   configPath?: string; // Added
   config?: GeneratorConfig; // Added

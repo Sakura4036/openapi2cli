@@ -19,6 +19,8 @@ program
   .option('--env-prefix <prefix>', 'Prefix for environment variables')
   .option('--include-tags <tags>', 'Comma-separated list of tags to include')
   .option('--include-ops <ids>', 'Comma-separated list of operation IDs to include')
+  .option('--exclude-tags <tags>', 'Comma-separated list of tags to exclude')
+  .option('--exclude-ops <ids>', 'Comma-separated list of operation IDs to exclude')
   .option('--group-by-tag', 'Enable tag-based subcommand hierarchy')
   .option('--logs', 'Show key log outputs during conversion')
   .option('-c, --config <path>', 'Path to configuration file')
@@ -70,6 +72,8 @@ program
         envPrefix,
         includeTags: options.includeTags ? options.includeTags.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.tags || undefined),
         includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.operationIds || undefined),
+        excludeTags: options.excludeTags ? options.excludeTags.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.block?.tags || undefined),
+        excludeOperationIds: options.excludeOps ? options.excludeOps.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.block?.operationIds || undefined),
         groupByTag: options.groupByTag,
         config: generatorConfig,
         logs: options.logs,

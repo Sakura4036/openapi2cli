@@ -1,4 +1,15 @@
 # CHANGELOG
+ 
+## [0.1.2] - 2026-03-23
+
+### Added
+- **OpenAPI V2/V3 Support**: Enhanced support for Swagger 2.0 and OpenAPI 3.0/3.1 robustly.
+- **Advanced Filtering**: New `--exclude-tags` and `--exclude-ops` options to skip specific APIs.
+- **Optimized Tools Export**: Simplified JSON schema for `export-tools-json` to save LLM context tokens and improve compatibility.
+
+### Improved
+- **Parser**: Better handling of path-level parameters and security scheme mapping.
+
 
 ## [0.1.1] - 2026-03-22
 

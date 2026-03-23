@@ -73,8 +73,9 @@ export class TypeScriptGenerator {
         }
 
         // 2. Block-list check (Absolute exclusion)
-        const blockTags = permissions?.block?.tags || [];
-        const blockOps = permissions?.block?.operationIds || [];
+        // CLI options have priority over config
+        const blockTags = this.options.excludeTags || permissions?.block?.tags || [];
+        const blockOps = this.options.excludeOperationIds || permissions?.block?.operationIds || [];
         const methodTags = method.tags || [];
         
         if (blockTags.some(t => methodTags.includes(t)) || (method.operationId && blockOps.includes(method.operationId))) {
@@ -246,24 +247,76 @@ program
   .description('Export API definitions as JSON for LLM tool calling')
   .action(() => {
     const spec = ${specJson};
-    const tools = spec.paths.flatMap((p: any) => p.methods.map((m: any) => ({
-      type: 'function',
-      function: {
-        name: m.operationId,
-        description: m.summary || m.description || \`Execute \${m.method.toUpperCase()} on \${p.path}\`,
-        parameters: {
+    
+    // Helper to simplify schema for LLM
+    const simplifySchema = (schema: any): any => {
+      if (!schema) return { type: 'string' };
+      
+      if (schema.type === 'object' && schema.properties) {
+        const properties: any = {};
+        for (const [key, prop] of Object.entries(schema.properties)) {
+          properties[key] = simplifySchema(prop);
+        }
+        return {
           type: 'object',
-          properties: m.parameters.reduce((acc: any, param: any) => {
-            acc[param.name] = {
-              type: param.type === 'number' ? 'number' : (param.type === 'boolean' ? 'boolean' : 'string'),
-              description: param.description || '',
-            };
-            return acc;
-          }, {}),
-          required: m.parameters.filter((p: any) => p.required).map((p: any) => p.name),
+          properties,
+          required: schema.required,
+          description: schema.description
+        };
+      }
+      
+      if (schema.type === 'array' && schema.items) {
+        return {
+          type: 'array',
+          items: simplifySchema(schema.items),
+          description: schema.description
+        };
+      }
+      
+      return {
+        type: schema.type || 'string',
+        description: schema.description,
+        enum: schema.enum
+      };
+    };
+
+    const tools = spec.paths.flatMap((p: any) => p.methods.map((m: any) => {
+      const properties: any = {};
+      const required: string[] = [];
+      
+      // Map parameters
+      m.parameters.forEach((param: any) => {
+        properties[param.name] = {
+          type: param.type === 'number' ? 'number' : (param.type === 'boolean' ? 'boolean' : 'string'),
+          description: param.description || '',
+        };
+        if (param.required) required.push(param.name);
+      });
+      
+      // Map request body if present
+      if (m.requestBody && m.requestBody.schema) {
+        const bodySchema = simplifySchema(m.requestBody.schema);
+        if (bodySchema.type === 'object' && bodySchema.properties) {
+          // Flatten simple objects or keep as 'body'
+          properties['body'] = bodySchema;
+        } else {
+          properties['body'] = bodySchema;
+        }
+      }
+
+      return {
+        type: 'function',
+        function: {
+          name: m.operationId,
+          description: m.summary || m.description || \`Execute \${m.method.toUpperCase()} on \${p.path}\`,
+          parameters: {
+            type: 'object',
+            properties,
+            required: required.length > 0 ? required : undefined,
+          },
         },
-      },
-    })));
+      };
+    }));
     console.log(JSON.stringify(tools, null, 2));
   });
 
