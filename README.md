@@ -16,6 +16,7 @@ A CLI tool that converts OpenAPI specifications (JSON/YAML) into executable CLI 
 - **Binary support**: Optimizes file upload and download interfaces
 - **Agent-Friendly**: Built-in support for LLM tool calling export and semantic search
 - **Developer Controls**: Declarative permissions (allow/block), read-only mode, and safety confirmations
+- **Conversion Logging**: View key log outputs during the CLI conversion process with the `--logs` flag
 
 ## Configuration
 

@@ -104,6 +104,7 @@ export interface GeneratorOptions {
   groupByTag?: boolean;
   configPath?: string; // Added
   config?: GeneratorConfig; // Added
+  logs?: boolean; // Enable debug logs
 }
 
 export type OpenAPIDocument = OpenAPI.Document;

@@ -11,34 +11,104 @@ export class TypeScriptGenerator {
     this.options = options;
   }
 
+  private log(message: string): void {
+    if (this.options.logs) {
+      console.log(`[LOG] ${message}`);
+    }
+  }
+
   async generate(spec: ParsedOpenAPI): Promise<void> {
-    this.spec = spec;
+    this.log(`Output directory: ${this.options.outputDir}`);
 
     // Create output directory
     if (!fs.existsSync(this.options.outputDir)) {
       fs.mkdirSync(this.options.outputDir, { recursive: true });
     }
 
+    this.log('Filtering API operations...');
+    this.spec = this.filterSpec(spec);
+
+    this.log('Generating package.json...');
     // Generate package.json
     this.generatePackageJson();
 
+    this.log('Generating tsconfig.json...');
     // Generate tsconfig.json
     this.generateTsConfig();
 
+    this.log('Generating main CLI entry point...');
     // Generate main CLI entry point
     this.generateCliEntry();
 
+    this.log('Generating API client...');
     // Generate API client
     this.generateApiClient();
 
+    this.log('Generating commands...');
     // Generate commands
     this.generateCommands();
 
+    this.log('Generating types...');
     // Generate types
     this.generateTypes();
 
+    this.log('Generating bin script...');
     // Generate bin script
     this.generateBinScript();
+
+    this.log('Generation completed.');
+  }
+
+  private filterSpec(spec: ParsedOpenAPI): ParsedOpenAPI {
+    const permissions = this.options.config?.permissions;
+    const filteredPaths = [];
+
+    for (const pathItem of spec.paths) {
+      const filteredMethods = [];
+      for (const method of pathItem.methods) {
+        // 1. Readonly check
+        if (permissions?.readonly && method.method.toLowerCase() !== 'get') {
+          this.log(`Skipping ${method.method.toUpperCase()} ${pathItem.path} (readonly mode enabled)`);
+          continue;
+        }
+
+        // 2. Block-list check (Absolute exclusion)
+        const blockTags = permissions?.block?.tags || [];
+        const blockOps = permissions?.block?.operationIds || [];
+        const methodTags = method.tags || [];
+        
+        if (blockTags.some(t => methodTags.includes(t)) || (method.operationId && blockOps.includes(method.operationId))) {
+          this.log(`Skipping blocked operation: ${method.operationId || method.method} ${pathItem.path}`);
+          continue;
+        }
+
+        // 3. Allow-list check (Union of tags and operation IDs)
+        // CLI options have priority over config
+        const includeTags = this.options.includeTags || permissions?.allow?.tags || [];
+        const includeOps = this.options.includeOperationIds || permissions?.allow?.operationIds || [];
+        
+        const hasAllowList = includeTags.length > 0 || includeOps.length > 0;
+        
+        if (hasAllowList) {
+          const matchesTag = includeTags.length > 0 && methodTags.some(t => includeTags.includes(t));
+          const matchesOp = includeOps.length > 0 && method.operationId && includeOps.includes(method.operationId);
+          
+          if (!matchesTag && !matchesOp) {
+            this.log(`Skipping operation not in allow list: ${method.operationId || method.method} ${pathItem.path}`);
+            continue;
+          }
+        }
+
+        this.log(`Including operation: ${method.operationId || method.method} ${pathItem.path}`);
+        filteredMethods.push(method);
+      }
+      
+      if (filteredMethods.length > 0) {
+        filteredPaths.push({ ...pathItem, methods: filteredMethods });
+      }
+    }
+
+    return { ...spec, paths: filteredPaths };
   }
 
   private generatePackageJson(): void {
@@ -391,53 +461,9 @@ export function buildQuery(params: Record<string, any>): string {
     }
 
     const allMethods: { path: string; method: ParsedMethod }[] = [];
-    const permissions = this.options.config?.permissions;
 
     for (const pathItem of this.spec.paths) {
       for (const method of pathItem.methods) {
-        // 1. Readonly check
-        if (permissions?.readonly && method.method.toLowerCase() !== 'get') {
-          continue;
-        }
-
-        // 2. Allow-list check (CLI options have priority over config)
-        const includeTags = this.options.includeTags;
-        if (includeTags && includeTags.length > 0) {
-          const methodTags = method.tags || [];
-          if (!methodTags.some(t => includeTags.includes(t))) {
-            continue;
-          }
-        } else if (permissions?.allow?.tags && permissions.allow.tags.length > 0) {
-          const methodTags = method.tags || [];
-          if (!methodTags.some(t => permissions.allow!.tags!.includes(t))) {
-            continue;
-          }
-        }
-
-        const includeOps = this.options.includeOperationIds;
-        if (includeOps && includeOps.length > 0) {
-          if (!method.operationId || !includeOps.includes(method.operationId)) {
-            continue;
-          }
-        } else if (permissions?.allow?.operationIds && permissions.allow.operationIds.length > 0) {
-          if (!method.operationId || !permissions.allow.operationIds.includes(method.operationId)) {
-            continue;
-          }
-        }
-
-        // 3. Block-list check
-        if (permissions?.block?.tags && permissions.block.tags.length > 0) {
-          const methodTags = method.tags || [];
-          if (methodTags.some(t => permissions.block!.tags!.includes(t))) {
-            continue;
-          }
-        }
-        if (permissions?.block?.operationIds && permissions.block.operationIds.length > 0) {
-          if (method.operationId && permissions.block.operationIds.includes(method.operationId)) {
-            continue;
-          }
-        }
-
         allMethods.push({ path: pathItem.path, method });
       }
     }

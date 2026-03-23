@@ -20,6 +20,7 @@ program
   .option('--include-tags <tags>', 'Comma-separated list of tags to include')
   .option('--include-ops <ids>', 'Comma-separated list of operation IDs to include')
   .option('--group-by-tag', 'Enable tag-based subcommand hierarchy')
+  .option('--logs', 'Show key log outputs during conversion')
   .option('-c, --config <path>', 'Path to configuration file')
   .action(async (input: string, options: any) => {
     try {
@@ -71,6 +72,7 @@ program
         includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.operationIds || undefined),
         groupByTag: options.groupByTag,
         config: generatorConfig,
+        logs: options.logs,
       });
 
       console.log(`Generating CLI to: ${options.output}`);
