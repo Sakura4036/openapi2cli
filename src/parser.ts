@@ -196,11 +196,24 @@ export class OpenAPIParser {
       const baseName = name;
 
       // Convert to UPPER_SNAKE_CASE
-      const prefix = snakeCase(baseName).toUpperCase();
+      let variableName = snakeCase(baseName).toUpperCase();
       
-      // If it's a generic name like "auth" or "bearer", append a suffix
-      const isGeneric = ['auth', 'bearer', 'token', 'key'].includes(prefix.toLowerCase());
-      envVarName = isGeneric ? `${prefix}_TOKEN` : prefix;
+      // Handle standard "HTTP_BEARER" from HTTPBearer scheme name
+      if (variableName === 'HTTP_BEARER') {
+        variableName = 'BEARER';
+      }
+
+      // Ensure appropriate suffix based on type
+      const isAuthToken = ['bearer', 'oauth2', 'openIdConnect', 'basic'].includes(type);
+      const isApiKey = type === 'apiKey';
+
+      if (isAuthToken && !variableName.endsWith('_TOKEN')) {
+        variableName = `${variableName}_TOKEN`;
+      } else if (isApiKey && !variableName.endsWith('_KEY')) {
+        variableName = `${variableName}_KEY`;
+      }
+      
+      envVarName = variableName;
 
       schemes.push({
         name,

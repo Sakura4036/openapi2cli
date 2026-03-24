@@ -62,7 +62,12 @@ program
       // Merge CLI options with config file (CLI has priority)
       const cliName = options.name || generatorConfig.cliName || kebabCase(spec.info.title);
       const baseUrl = options.baseUrl || generatorConfig.baseUrl || spec.baseUrl;
-      const envPrefix = options.envPrefix || generatorConfig.envPrefix;
+      
+      // Format environment variable prefix: default to 'API', uppercase, ensure trailing underscore
+      let envPrefix = (options.envPrefix || generatorConfig.envPrefix || 'API').toUpperCase();
+      if (!envPrefix.endsWith('_')) {
+        envPrefix += '_';
+      }
 
       // Create generator
       const generator = new TypeScriptGenerator({
@@ -93,7 +98,6 @@ program
 
       if (spec.securitySchemes.length > 0) {
         console.log('\nAuthentication:');
-        const envPrefix = options.envPrefix || '';
         for (const scheme of spec.securitySchemes) {
           console.log(`  export ${envPrefix}${scheme.envVarName}="your-token-here"`);
         }

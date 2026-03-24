@@ -1,5 +1,12 @@
 # CHANGELOG
  
+## [0.1.3] - 2026-03-24
+
+### Added
+- **Standardized Environment Variables**: Implemented default `API_` prefix for environment variables if none provided.
+- **Naming Convention**: Enforced uppercase and underscore-separated naming for all environment variable prefixes.
+- **Auth Suffixes**: Standardized authentication variable suffixes to `_TOKEN` or `_KEY` for better predictability.
+
 ## [0.1.2] - 2026-03-23
 
 ### Added

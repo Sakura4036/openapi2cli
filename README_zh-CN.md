@@ -105,7 +105,7 @@ npm link
 ### 3. 使用
 
 ```bash
-# 设置认证信息
+# 设置认证信息 (默认前缀为 API_)
 export API_TOKEN="your-token"
 
 # 执行 API 调用

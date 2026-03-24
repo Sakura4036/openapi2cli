@@ -103,7 +103,7 @@ npm link
 ### 3. Usage
 
 ```bash
-# Set authentication
+# Set authentication (Default prefix is API_)
 export API_TOKEN="your-token"
 
 # Execute an API call

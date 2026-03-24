@@ -122,7 +122,7 @@ export class TypeScriptGenerator {
       description: this.spec.info.description || `CLI for ${this.spec.info.title}`,
       main: 'dist/index.js',
       bin: {
-        [cliName]: './bin/cli.js',
+        [cliName]: 'bin/cli.js',
       },
       scripts: {
         build: 'tsc',
@@ -175,11 +175,12 @@ export class TypeScriptGenerator {
     }
 
     const binScript = `#!/usr/bin/env node
-require('../dist/index.js');
+const path = require('path');
+require(path.join(__dirname, '../dist/index.js'));
 `;
 
     fs.writeFileSync(nodePath.join(binDir, 'cli.js'), binScript);
-    fs.chmodSync(nodePath.join(binDir, 'cli.js'), '755');
+    fs.chmodSync(nodePath.join(binDir, 'cli.js'), 0o755);
   }
 
   private generateCliEntry(): void {
@@ -193,7 +194,7 @@ require('../dist/index.js');
     const cliName = this.options.cliName || kebabCase(this.spec.info.title);
 
     const envPrefix = this.options.envPrefix || '';
-    const baseUrlEnv = `${envPrefix}API_BASE_URL`;
+    const baseUrlEnv = `${envPrefix}BASE_URL`;
 
     // Clone spec and inject command names for system commands
     const specWithCommandNames = {
@@ -239,6 +240,22 @@ program
       });
     });
     if (!found) console.log('No matching operations found.');
+  });
+
+// System command: Show Configuration
+program
+  .command('config')
+  .description('Show current CLI configuration')
+  .action(() => {
+    console.log('Current Configuration:');
+    console.log(\`- Base URL: \${baseUrl}\`);
+    console.log(\`- Base URL Env Var: ${baseUrlEnv}\`);
+    
+    const authVars: string[] = ${JSON.stringify(this.spec.securitySchemes.map(s => `${(this.options.envPrefix || '')}${s.envVarName}`))};
+    if (authVars.length > 0) {
+      console.log('\\nAuthentication Environment Variables:');
+      authVars.forEach(v => console.log(\`- \${v}\`));
+    }
   });
 
 // System command: Export Tools JSON (for LLM Function Calling)
@@ -618,7 +635,7 @@ ${commandRegistrations.join('\n')}
 
     if (pathParams.length > 0) {
       pathBuilder = `const pathParams = {
-${pathParams.map((p) => `        ${camelCase(p.name)}: options.${camelCase(p.name)},`).join('\n')}
+${pathParams.map((p) => `        ['${p.name}']: options.${camelCase(p.name)},`).join('\n')}
       };
       const path = buildPath('${pathTemplate}', pathParams);`;
     } else {

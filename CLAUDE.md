@@ -2,6 +2,15 @@
 
 openapi2cli - Convert OpenAPI specs (JSON/YAML) to executable CLI tools.
 
+## Environment
+
+**检测当前开发环境**，根据操作系统使用正确的命令：
+
+| Platform | Notes |
+|----------|-------|
+| **Windows** | 使用 `node bin\openapi2cli.js` (反斜杠) 或 PowerShell 中使用正斜杠 |
+| **Linux/macOS** | 使用 `node bin/openapi2cli.js` (正斜杠)，脚本使用 shebang `#!/usr/bin/env node` |
+
 ## Commands
 
 ```bash

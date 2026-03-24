@@ -578,10 +578,10 @@ describe('OpenAPIParser', () => {
       const result = await parser.parse(tempFile);
 
       const bearerAuth = result.securitySchemes.find((s) => s.name === 'bearerAuth');
-      expect(bearerAuth!.envVarName).toBe('BEARER_AUTH');
+      expect(bearerAuth!.envVarName).toBe('BEARER_AUTH_TOKEN');
 
       const apiKeyHeader = result.securitySchemes.find((s) => s.name === 'apiKeyHeader');
-      expect(apiKeyHeader!.envVarName).toBe('API_KEY_HEADER');
+      expect(apiKeyHeader!.envVarName).toBe('API_KEY_HEADER_KEY');
 
       fs.unlinkSync(tempFile);
     });
