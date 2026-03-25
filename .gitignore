@@ -8,3 +8,5 @@ test-*/
 test-cli/
 test-cli-filtered/
 test-cli-31/
+.agents/
+.claude/
