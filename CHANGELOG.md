@@ -1,5 +1,10 @@
 # CHANGELOG
  
+## [0.1.7] - 2026-03-26
+
+### Fixed
+- **Version Reporting**: Dynamically read version from `package.json` in CLI help output instead of a hardcoded string.
+
 ## [0.1.6] - 2026-03-26
 
 ### Fixed
