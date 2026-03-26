@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name('openapi2cli')
   .description('Convert OpenAPI specifications to executable CLI tools')
-  .version('1.0.0')
+  .version('0.1.4')
   .argument('<input>', 'OpenAPI specification file (JSON/YAML) or URL')
   .requiredOption('-o, --output <dir>', 'Output directory for generated CLI')
   .option('--base-url <url>', 'Override base URL for API requests')
@@ -75,10 +75,10 @@ program
         cliName,
         baseUrl,
         envPrefix,
-        includeTags: options.includeTags ? options.includeTags.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.tags || undefined),
-        includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.allow?.operationIds || undefined),
-        excludeTags: options.excludeTags ? options.excludeTags.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.block?.tags || undefined),
-        excludeOperationIds: options.excludeOps ? options.excludeOps.split(',').map((s: string) => s.trim()) : (generatorConfig.permissions?.block?.operationIds || undefined),
+        includeTags: options.includeTags ? options.includeTags.split(',').map((s: string) => s.trim().toLowerCase()) : (generatorConfig.permissions?.allow?.tags?.map((s: string) => s.trim().toLowerCase()) || undefined),
+        includeOperationIds: options.includeOps ? options.includeOps.split(',').map((s: string) => s.trim().toLowerCase()) : (generatorConfig.permissions?.allow?.operationIds?.map((s: string) => s.trim().toLowerCase()) || undefined),
+        excludeTags: options.excludeTags ? options.excludeTags.split(',').map((s: string) => s.trim().toLowerCase()) : (generatorConfig.permissions?.block?.tags?.map((s: string) => s.trim().toLowerCase()) || undefined),
+        excludeOperationIds: options.excludeOps ? options.excludeOps.split(',').map((s: string) => s.trim().toLowerCase()) : (generatorConfig.permissions?.block?.operationIds?.map((s: string) => s.trim().toLowerCase()) || undefined),
         groupByTag: options.groupByTag,
         config: generatorConfig,
         logs: options.logs,

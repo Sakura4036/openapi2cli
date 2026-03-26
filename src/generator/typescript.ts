@@ -74,25 +74,26 @@ export class TypeScriptGenerator {
 
         // 2. Block-list check (Absolute exclusion)
         // CLI options have priority over config
-        const blockTags = this.options.excludeTags || permissions?.block?.tags || [];
-        const blockOps = this.options.excludeOperationIds || permissions?.block?.operationIds || [];
-        const methodTags = method.tags || [];
+        const blockTags = (this.options.excludeTags || permissions?.block?.tags || []).map(t => t.toLowerCase().trim());
+        const blockOps = (this.options.excludeOperationIds || permissions?.block?.operationIds || []).map(o => o.toLowerCase().trim());
+        const methodTags = (method.tags || []).map(t => t.toLowerCase().trim());
+        const currentOpId = method.operationId ? method.operationId.toLowerCase().trim() : undefined;
         
-        if (blockTags.some(t => methodTags.includes(t)) || (method.operationId && blockOps.includes(method.operationId))) {
+        if (blockTags.some(t => methodTags.includes(t)) || (currentOpId && blockOps.includes(currentOpId))) {
           this.log(`Skipping blocked operation: ${method.operationId || method.method} ${pathItem.path}`);
           continue;
         }
 
         // 3. Allow-list check (Union of tags and operation IDs)
         // CLI options have priority over config
-        const includeTags = this.options.includeTags || permissions?.allow?.tags || [];
-        const includeOps = this.options.includeOperationIds || permissions?.allow?.operationIds || [];
+        const includeTags = (this.options.includeTags || permissions?.allow?.tags || []).map(t => t.toLowerCase().trim());
+        const includeOps = (this.options.includeOperationIds || permissions?.allow?.operationIds || []).map(o => o.toLowerCase().trim());
         
         const hasAllowList = includeTags.length > 0 || includeOps.length > 0;
         
         if (hasAllowList) {
           const matchesTag = includeTags.length > 0 && methodTags.some(t => includeTags.includes(t));
-          const matchesOp = includeOps.length > 0 && method.operationId && includeOps.includes(method.operationId);
+          const matchesOp = includeOps.length > 0 && currentOpId && includeOps.includes(currentOpId);
           
           if (!matchesTag && !matchesOp) {
             this.log(`Skipping operation not in allow list: ${method.operationId || method.method} ${pathItem.path}`);

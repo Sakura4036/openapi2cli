@@ -1,5 +1,14 @@
 # CHANGELOG
  
+## [0.1.4] - 2026-03-26
+
+### Added
+- **Conversion Logs**: Added `--logs` flag to display key log outputs during the CLI generation process for better transparency and debugging.
+- **Filtering Robustness**: 
+  - Implemented case-insensitive matching for tags and operation IDs in include/exclude filters.
+  - Added automatic whitespace trimming for comma-separated CLI filter values.
+- **Validation**: Added a new test suite for filtering logic robustness.
+
 ## [0.1.3] - 2026-03-24
 
 ### Added
