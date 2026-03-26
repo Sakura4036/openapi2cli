@@ -1,5 +1,11 @@
 # CHANGELOG
  
+## [0.1.5] - 2026-03-26
+
+### Fixed
+- **Build Sync**: Ensured `dist/` is correctly synchronized with `src/` to resolve tag filtering discrepancy in NPM release.
+- **Filtering Logic**: Verified robustness of case-insensitive tag and operation ID matching.
+
 ## [0.1.4] - 2026-03-26
 
 ### Added

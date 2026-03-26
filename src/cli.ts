@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name('openapi2cli')
   .description('Convert OpenAPI specifications to executable CLI tools')
-  .version('0.1.4')
+  .version('0.1.5')
   .argument('<input>', 'OpenAPI specification file (JSON/YAML) or URL')
   .requiredOption('-o, --output <dir>', 'Output directory for generated CLI')
   .option('--base-url <url>', 'Override base URL for API requests')

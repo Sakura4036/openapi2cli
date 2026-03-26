@@ -1,6 +1,6 @@
 {
   "name": "openapi2cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Convert OpenAPI specifications to executable CLI tools",
   "main": "dist/index.js",
   "bin": {
