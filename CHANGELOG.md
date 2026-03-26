@@ -1,5 +1,10 @@
 # CHANGELOG
  
+## [0.1.8] - 2026-03-26
+
+### Fixed
+- **PowerShell Compatibility**: Fixed an issue where PowerShell would convert comma-separated arguments (`--include-tags a,b`) into space-separated strings when passing to the global NPM `.cmd` wrapper. The CLI now correctly parses both comma and space-separated lists for tags and operation IDs.
+
 ## [0.1.7] - 2026-03-26
 
 ### Fixed
