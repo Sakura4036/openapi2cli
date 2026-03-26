@@ -20,6 +20,10 @@
   ],
   "author": "",
   "license": "MIT",
+  "files": [
+    "bin",
+    "dist"
+  ],
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
     "commander": "^12.0.0",
