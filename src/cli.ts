@@ -113,7 +113,7 @@ program
       if (spec.securitySchemes.length > 0) {
         console.log('\nAuthentication:');
         for (const scheme of spec.securitySchemes) {
-          console.log(`  export ${getAuthEnvVarName(scheme.envVarName)}="your-token-here"`);
+          console.log(`  export ${getAuthEnvVarName(scheme.envVarName)}="your-api-key-here"`);
         }
       }
     } catch (error: any) {

@@ -62,6 +62,6 @@ describe('CLI Generation Integration', () => {
     // 5. Verify environment variables are correctly mentioned in the code (optional check)
     const clientContent = fs.readFileSync(path.join(outputDir, 'src/client.ts'), 'utf-8');
     expect(clientContent).toContain('process.env.TEST_API_KEY');
-    expect(clientContent).toContain('process.env.TEST_BEARER_AUTH_API_KEY');
+    expect(clientContent).not.toContain('process.env.TEST_BEARER_AUTH_API_KEY');
   }, 60000); // Set timeout to 60s for npm install
 });

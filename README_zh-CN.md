@@ -107,8 +107,8 @@ npm link
 ### 3. 使用
 
 ```bash
-# 设置认证信息（默认格式为 API_<SCHEME>_API_KEY）
-export API_BEARER_AUTH_API_KEY="your-api-key"
+# 设置认证信息（默认格式为 <PREFIX>_API_KEY）
+export API_API_KEY="your-api-key"
 
 # 或在生成时完整指定认证变量名：
 # openapi2cli ./api.json -o ./my-cli --auth-env-name MY_SERVICE_API_KEY

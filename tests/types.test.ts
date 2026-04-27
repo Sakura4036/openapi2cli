@@ -53,7 +53,7 @@ describe('Types Module', () => {
       const scheme: SecurityScheme = {
         name: 'bearerAuth',
         type: 'bearer',
-        envVarName: 'BEARER_AUTH_API_KEY',
+        envVarName: 'API_KEY',
       };
 
       expect(scheme.type).toBe('bearer');
@@ -66,7 +66,7 @@ describe('Types Module', () => {
         type: 'apiKey',
         in: 'header',
         paramName: 'X-API-Key',
-        envVarName: 'API_KEY_AUTH_API_KEY',
+        envVarName: 'API_KEY',
       };
 
       expect(scheme.type).toBe('apiKey');
@@ -89,7 +89,7 @@ describe('Types Module', () => {
         name: 'oauth2',
         type: 'oauth2',
         description: 'OAuth 2.0 authentication',
-        envVarName: 'OAUTH2_API_KEY',
+        envVarName: 'API_KEY',
       };
 
       expect(scheme.type).toBe('oauth2');
@@ -100,7 +100,7 @@ describe('Types Module', () => {
       const scheme: SecurityScheme = {
         name: 'oidc',
         type: 'openIdConnect',
-        envVarName: 'OIDC_API_KEY',
+        envVarName: 'API_KEY',
       };
 
       expect(scheme.type).toBe('openIdConnect');

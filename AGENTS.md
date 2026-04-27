@@ -86,8 +86,8 @@ my-cli/
 ### Authentication
 
 Env vars are auto-generated from security schemes:
-- `Bearer/OAuth2/OIDC`: `<PREFIX>_<SCHEME>_API_KEY`
-- `API Key`: `<PREFIX>_<SCHEME>_API_KEY`
+- `Bearer/OAuth2/OIDC`: `<PREFIX>_API_KEY`
+- `API Key`: `<PREFIX>_API_KEY`
 - `Basic`: `<PREFIX>_<SCHEME>_USERNAME` + `_PASSWORD`
 - `--auth-env-name` / `authEnvName` replaces the full authentication variable name and does not use `envPrefix`
 

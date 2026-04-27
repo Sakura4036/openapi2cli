@@ -105,8 +105,8 @@ npm link
 ### 3. Usage
 
 ```bash
-# Set authentication (defaults to API_<SCHEME>_API_KEY)
-export API_BEARER_AUTH_API_KEY="your-api-key"
+# Set authentication (defaults to <PREFIX>_API_KEY)
+export API_API_KEY="your-api-key"
 
 # Or generate with a complete auth variable name:
 # openapi2cli ./api.json -o ./my-cli --auth-env-name MY_SERVICE_API_KEY

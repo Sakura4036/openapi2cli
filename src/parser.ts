@@ -183,24 +183,14 @@ export class OpenAPIParser {
           type = 'bearer';
       }
 
-      // Create a more specific env var name based on scheme name
-      const baseName = name;
-
-      // Convert to UPPER_SNAKE_CASE
-      let variableName = snakeCase(baseName).toUpperCase();
-      
-      // Handle standard "HTTP_BEARER" from HTTPBearer scheme name
-      if (variableName === 'HTTP_BEARER') {
-        variableName = 'BEARER';
-      }
-
-      // Ensure appropriate suffix based on type
       const isAuthKey = ['bearer', 'oauth2', 'openIdConnect', 'apiKey'].includes(type);
+      let variableName = 'API_KEY';
 
-      if (isAuthKey && variableName !== 'API_KEY' && !variableName.endsWith('_API_KEY')) {
-        variableName = `${variableName}_API_KEY`;
-      } else if (type === 'basic' && !variableName.endsWith('_USERNAME')) {
-        variableName = `${variableName}_USERNAME`;
+      if (!isAuthKey) {
+        variableName = snakeCase(name).toUpperCase();
+        if (!variableName.endsWith('_USERNAME')) {
+          variableName = `${variableName}_USERNAME`;
+        }
       }
 
       schemes.push({
