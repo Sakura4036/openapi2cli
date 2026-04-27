@@ -38,6 +38,7 @@
   --base-url <url>       覆盖 API 请求的基地址
   --name <name>          生成的 CLI 工具名称 (默认取自 API 标题)
   --env-prefix <prefix>  环境变量前缀
+  --auth-env-name <name> 完整认证环境变量名
   --include-tags <tags>  要包含的标签列表 (逗号分隔)
   --include-ops <ids>    要包含的 Operation ID 列表 (逗号分隔)
   --exclude-tags <tags>  要排除的标签列表 (逗号分隔)
@@ -55,6 +56,7 @@
 ```yaml
 # 示例 .openapi2cli.yaml
 cliName: my-service-cli
+authEnvName: MY_SERVICE_API_KEY
 permissions:
   readonly: false
   allow:
@@ -105,8 +107,11 @@ npm link
 ### 3. 使用
 
 ```bash
-# 设置认证信息 (默认前缀为 API_)
-export API_TOKEN="your-token"
+# 设置认证信息（默认格式为 API_<SCHEME>_API_KEY）
+export API_BEARER_AUTH_API_KEY="your-api-key"
+
+# 或在生成时完整指定认证变量名：
+# openapi2cli ./api.json -o ./my-cli --auth-env-name MY_SERVICE_API_KEY
 
 # 执行 API 调用
 my-cli get-users --limit 10

@@ -40,9 +40,9 @@ npm link  # Optional: accessible globally
 ```
 
 ### 3. Authentication
-The generated CLI uses environment variables for authentication. Prefix is `CLI_` by default (can be customized with `--env-prefix`).
-- **Bearer/OAuth2**: `<PREFIX>_<SCHEME>_TOKEN`
-- **API Key**: `<PREFIX>_<SCHEME>_TOKEN`
+The generated CLI uses environment variables for authentication. Prefix is `CLI_` by default (can be customized with `--env-prefix`), and authentication variables can be fully replaced with `--auth-env-name`.
+- **Bearer/OAuth2**: `<PREFIX>_<SCHEME>_API_KEY`
+- **API Key**: `<PREFIX>_<SCHEME>_API_KEY`
 - **Basic**: `<PREFIX>_<SCHEME>_USERNAME` + `_PASSWORD`
 
 ### 4. Agent-Friendly Features

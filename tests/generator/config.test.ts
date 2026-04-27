@@ -39,12 +39,14 @@ describe('Config Loader', () => {
       cliName: 'config-name',
       baseUrl: 'http://config.url',
       envPrefix: 'CONFIG_',
+      authEnvName: 'CONFIG_AUTH_KEY',
     };
 
     const options = {
       cliName: 'cli-name',
       // baseUrl is missing, should take from config
       envPrefix: 'CLI_',
+      authEnvName: 'CLI_AUTH_KEY',
     };
 
     const merged = mergeConfig(config, options);
@@ -52,5 +54,6 @@ describe('Config Loader', () => {
     expect(merged.cliName).toBe('cli-name');
     expect(merged.baseUrl).toBe('http://config.url');
     expect(merged.envPrefix).toBe('CLI_');
+    expect(merged.authEnvName).toBe('CLI_AUTH_KEY');
   });
 });

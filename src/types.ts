@@ -73,6 +73,7 @@ export interface GeneratorConfig {
   cliName?: string;
   baseUrl?: string;
   envPrefix?: string;
+  authEnvName?: string;
   permissions?: {
     readonly?: boolean;
     allow?: {
@@ -99,6 +100,7 @@ export interface GeneratorOptions {
   cliName?: string;
   baseUrl?: string;
   envPrefix?: string;
+  authEnvName?: string;
   includeTags?: string[];
   includeOperationIds?: string[];
   excludeTags?: string[];

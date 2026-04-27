@@ -118,7 +118,7 @@ npm run build
 npm link
 
 # 设置认证
-export API_TOKEN="your-token"
+export API_BEARER_AUTH_API_KEY="your-api-key"
 
 # 调用 API
 my-cli get-users --limit 10

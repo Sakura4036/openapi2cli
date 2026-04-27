@@ -8,7 +8,7 @@ import {
   ParsedRequestBody,
   ParsedResponse,
 } from './types';
-import { camelCase, upperCase, snakeCase } from 'lodash';
+import { snakeCase } from 'lodash';
 
 // Internal document type that handles both OpenAPI 3.x and Swagger 2.x
 interface OpenAPIDocumentInternal {
@@ -155,41 +155,32 @@ export class OpenAPIParser {
       const typedScheme = scheme as any;
 
       let type: SecurityScheme['type'] = 'bearer';
-      let envVarName = '';
 
       switch (typedScheme.type) {
         case 'http':
           if (typedScheme.scheme === 'bearer') {
             type = 'bearer';
-            envVarName = 'API_TOKEN';
           } else if (typedScheme.scheme === 'basic') {
             type = 'basic';
-            envVarName = 'API_USERNAME';
           } else {
             type = 'bearer';
-            envVarName = 'API_TOKEN';
           }
           break;
         case 'apiKey':
           type = 'apiKey';
-          envVarName = 'API_KEY';
           break;
         case 'oauth2':
           type = 'oauth2';
-          envVarName = 'OAUTH_TOKEN';
           break;
         case 'openIdConnect':
           type = 'openIdConnect';
-          envVarName = 'OPENID_TOKEN';
           break;
         case 'basic':
           // Swagger 2.x basic auth
           type = 'basic';
-          envVarName = 'API_USERNAME';
           break;
         default:
           type = 'bearer';
-          envVarName = 'API_TOKEN';
       }
 
       // Create a more specific env var name based on scheme name
@@ -204,16 +195,13 @@ export class OpenAPIParser {
       }
 
       // Ensure appropriate suffix based on type
-      const isAuthToken = ['bearer', 'oauth2', 'openIdConnect', 'basic'].includes(type);
-      const isApiKey = type === 'apiKey';
+      const isAuthKey = ['bearer', 'oauth2', 'openIdConnect', 'apiKey'].includes(type);
 
-      if (isAuthToken && !variableName.endsWith('_TOKEN')) {
-        variableName = `${variableName}_TOKEN`;
-      } else if (isApiKey && !variableName.endsWith('_KEY')) {
-        variableName = `${variableName}_KEY`;
+      if (isAuthKey && variableName !== 'API_KEY' && !variableName.endsWith('_API_KEY')) {
+        variableName = `${variableName}_API_KEY`;
+      } else if (type === 'basic' && !variableName.endsWith('_USERNAME')) {
+        variableName = `${variableName}_USERNAME`;
       }
-      
-      envVarName = variableName;
 
       schemes.push({
         name,
@@ -221,7 +209,7 @@ export class OpenAPIParser {
         in: typedScheme.in as SecurityScheme['in'],
         paramName: typedScheme.name,
         description: typedScheme.description,
-        envVarName,
+        envVarName: variableName,
       });
     }
 

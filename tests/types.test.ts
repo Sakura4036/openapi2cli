@@ -53,7 +53,7 @@ describe('Types Module', () => {
       const scheme: SecurityScheme = {
         name: 'bearerAuth',
         type: 'bearer',
-        envVarName: 'BEARER_AUTH_TOKEN',
+        envVarName: 'BEARER_AUTH_API_KEY',
       };
 
       expect(scheme.type).toBe('bearer');
@@ -66,7 +66,7 @@ describe('Types Module', () => {
         type: 'apiKey',
         in: 'header',
         paramName: 'X-API-Key',
-        envVarName: 'API_KEY_AUTH_TOKEN',
+        envVarName: 'API_KEY_AUTH_API_KEY',
       };
 
       expect(scheme.type).toBe('apiKey');
@@ -78,7 +78,7 @@ describe('Types Module', () => {
       const scheme: SecurityScheme = {
         name: 'basicAuth',
         type: 'basic',
-        envVarName: 'BASIC_AUTH_TOKEN',
+        envVarName: 'BASIC_AUTH_USERNAME',
       };
 
       expect(scheme.type).toBe('basic');
@@ -89,7 +89,7 @@ describe('Types Module', () => {
         name: 'oauth2',
         type: 'oauth2',
         description: 'OAuth 2.0 authentication',
-        envVarName: 'OAUTH2_TOKEN',
+        envVarName: 'OAUTH2_API_KEY',
       };
 
       expect(scheme.type).toBe('oauth2');
@@ -100,7 +100,7 @@ describe('Types Module', () => {
       const scheme: SecurityScheme = {
         name: 'oidc',
         type: 'openIdConnect',
-        envVarName: 'OIDC_TOKEN',
+        envVarName: 'OIDC_API_KEY',
       };
 
       expect(scheme.type).toBe('openIdConnect');
@@ -279,11 +279,13 @@ describe('Types Module', () => {
         cliName: 'my-cli',
         baseUrl: 'https://api.example.com',
         envPrefix: 'MY_API',
+        authEnvName: 'MY_AUTH_API_KEY',
       };
 
       expect(options.cliName).toBe('my-cli');
       expect(options.baseUrl).toBe('https://api.example.com');
       expect(options.envPrefix).toBe('MY_API');
+      expect(options.authEnvName).toBe('MY_AUTH_API_KEY');
     });
   });
 });

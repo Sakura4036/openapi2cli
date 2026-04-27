@@ -42,6 +42,7 @@ node bin/openapi2cli.js ./api.json -o ./my-cli
 --base-url <url>         Override API base URL
 --name <name>            CLI name (default: from API title)
 --env-prefix <prefix>    Environment variable prefix
+--auth-env-name <name>   Complete authentication environment variable name
 --include-tags <tags>    Comma-separated tags to include
 --include-ops <ids>      Comma-separated operation IDs to include
 --exclude-tags <tags>    Comma-separated tags to exclude
@@ -57,6 +58,7 @@ node bin/openapi2cli.js ./api.json -o ./my-cli
 cliName: my-api
 baseUrl: https://api.example.com
 envPrefix: MY_API_
+authEnvName: MY_SERVICE_API_KEY
 permissions:
   allow:
     tags: [users, posts]
@@ -84,9 +86,10 @@ my-cli/
 ### Authentication
 
 Env vars are auto-generated from security schemes:
-- `Bearer/OAuth2/OIDC`: `<PREFIX>_<SCHEME>_TOKEN`
-- `API Key`: `<PREFIX>_<SCHEME>_TOKEN`
+- `Bearer/OAuth2/OIDC`: `<PREFIX>_<SCHEME>_API_KEY`
+- `API Key`: `<PREFIX>_<SCHEME>_API_KEY`
 - `Basic`: `<PREFIX>_<SCHEME>_USERNAME` + `_PASSWORD`
+- `--auth-env-name` / `authEnvName` replaces the full authentication variable name and does not use `envPrefix`
 
 ## Tests
 

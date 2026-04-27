@@ -196,6 +196,7 @@ require(path.join(__dirname, '../dist/index.js'));
 
     const envPrefix = this.options.envPrefix || '';
     const baseUrlEnv = `${envPrefix}BASE_URL`;
+    const authEnvVars = this.spec.securitySchemes.map(s => this.getAuthEnvVarName(s.envVarName));
 
     // Clone spec and inject command names for system commands
     const specWithCommandNames = {
@@ -252,7 +253,7 @@ program
     console.log(\`- Base URL: \${baseUrl}\`);
     console.log(\`- Base URL Env Var: ${baseUrlEnv}\`);
     
-    const authVars: string[] = ${JSON.stringify(this.spec.securitySchemes.map(s => `${(this.options.envPrefix || '')}${s.envVarName}`))};
+    const authVars: string[] = ${JSON.stringify(authEnvVars)};
     if (authVars.length > 0) {
       console.log('\\nAuthentication Environment Variables:');
       authVars.forEach(v => console.log(\`- \${v}\`));
@@ -356,8 +357,6 @@ program.parse();
     const srcDir = nodePath.join(this.options.outputDir, 'src');
 
     const securityConfig = this.generateSecurityConfig();
-    const envPrefix = this.options.envPrefix || '';
-
     const clientContent = `export interface ApiClientConfig {
   baseUrl: string;
 }
@@ -453,10 +452,8 @@ export function buildQuery(params: Record<string, any>): string {
     const props: string[] = [];
     const interceptors: string[] = [];
 
-    const envPrefix = this.options.envPrefix || '';
-
     for (const scheme of this.spec.securitySchemes) {
-      const envVar = `${envPrefix}${scheme.envVarName}`;
+      const envVar = this.getAuthEnvVarName(scheme.envVarName);
 
       switch (scheme.type) {
         case 'bearer':
@@ -491,10 +488,11 @@ export function buildQuery(params: Record<string, any>): string {
 
         case 'basic':
           interfaces.push(`// ${scheme.name}: Basic authentication`);
+          const passwordEnvVar = this.getPasswordEnvVarName(envVar);
           interceptors.push(`
   // ${scheme.name}: Basic auth
   const ${scheme.name}Username = process.env.${envVar};
-  const ${scheme.name}Password = process.env.${envVar.replace('_TOKEN', '_PASSWORD')};
+  const ${scheme.name}Password = process.env.${passwordEnvVar};
   if (${scheme.name}Username && ${scheme.name}Password) {
     const credentials = Buffer.from(\`\${${scheme.name}Username}:\${${scheme.name}Password}\`).toString('base64');
     headers['Authorization'] = \`Basic \${credentials}\`;
@@ -519,6 +517,30 @@ export function buildQuery(params: Record<string, any>): string {
       configProps: props.join('\n  '),
       interceptor: interceptors.join('\n'),
     };
+  }
+
+  private getAuthEnvVarName(defaultName: string): string {
+    if (this.options.authEnvName) {
+      return this.normalizeEnvVarName(this.options.authEnvName);
+    }
+
+    return `${this.options.envPrefix || ''}${defaultName}`;
+  }
+
+  private normalizeEnvVarName(name: string): string {
+    const normalized = name.trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
+    if (!normalized) {
+      throw new Error('Authentication environment variable name cannot be empty');
+    }
+    return normalized;
+  }
+
+  private getPasswordEnvVarName(usernameEnvVar: string): string {
+    if (usernameEnvVar.endsWith('_USERNAME')) {
+      return usernameEnvVar.replace(/_USERNAME$/, '_PASSWORD');
+    }
+
+    return `${usernameEnvVar}_PASSWORD`;
   }
 
   private generateCommands(): void {

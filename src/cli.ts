@@ -18,6 +18,7 @@ program
   .option('--base-url <url>', 'Override base URL for API requests')
   .option('--name <name>', 'Name for the generated CLI (default: derived from API title)')
   .option('--env-prefix <prefix>', 'Prefix for environment variables')
+  .option('--auth-env-name <name>', 'Complete authentication environment variable name (overrides --env-prefix for auth)')
   .option('--include-tags <tags>', 'Comma-separated list of tags to include')
   .option('--include-ops <ids>', 'Comma-separated list of operation IDs to include')
   .option('--exclude-tags <tags>', 'Comma-separated list of tags to exclude')
@@ -70,12 +71,24 @@ program
         envPrefix += '_';
       }
 
+      const authEnvName = options.authEnvName || generatorConfig.authEnvName;
+      const normalizeEnvVarName = (name: string): string => {
+        const normalized = name.trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toUpperCase();
+        if (!normalized) {
+          throw new Error('Authentication environment variable name cannot be empty');
+        }
+        return normalized;
+      };
+      const getAuthEnvVarName = (defaultName: string): string =>
+        authEnvName ? normalizeEnvVarName(authEnvName) : `${envPrefix}${defaultName}`;
+
       // Create generator
       const generator = new TypeScriptGenerator({
         outputDir: path.resolve(options.output),
         cliName,
         baseUrl,
         envPrefix,
+        authEnvName,
         includeTags: options.includeTags ? options.includeTags.split(/[,\s]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean) : (generatorConfig.permissions?.allow?.tags?.map((s: string) => s.trim().toLowerCase()) || undefined),
         includeOperationIds: options.includeOps ? options.includeOps.split(/[,\s]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean) : (generatorConfig.permissions?.allow?.operationIds?.map((s: string) => s.trim().toLowerCase()) || undefined),
         excludeTags: options.excludeTags ? options.excludeTags.split(/[,\s]+/).map((s: string) => s.trim().toLowerCase()).filter(Boolean) : (generatorConfig.permissions?.block?.tags?.map((s: string) => s.trim().toLowerCase()) || undefined),
@@ -100,7 +113,7 @@ program
       if (spec.securitySchemes.length > 0) {
         console.log('\nAuthentication:');
         for (const scheme of spec.securitySchemes) {
-          console.log(`  export ${envPrefix}${scheme.envVarName}="your-token-here"`);
+          console.log(`  export ${getAuthEnvVarName(scheme.envVarName)}="your-token-here"`);
         }
       }
     } catch (error: any) {

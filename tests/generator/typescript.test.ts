@@ -212,5 +212,28 @@ describe('TypeScriptGenerator', () => {
 
       expect(clientContent).toContain('url.searchParams.set(\'api_key\', keyKey)');
     });
+
+    it('should use full auth env name override without prefix', async () => {
+      const bearerOnlySpec: ParsedOpenAPI = {
+        info: { title: 'Bearer API', version: '1.0.0' },
+        securitySchemes: [
+          { name: 'token', type: 'bearer', envVarName: 'TOKEN_API_KEY' },
+        ],
+        paths: [],
+      };
+
+      generator = new TypeScriptGenerator({
+        outputDir: tempDir,
+        envPrefix: 'TEST_',
+        authEnvName: 'custom-secret',
+      });
+      await generator.generate(bearerOnlySpec);
+
+      const clientPath = path.join(tempDir, 'src', 'client.ts');
+      const clientContent = fs.readFileSync(clientPath, 'utf-8');
+
+      expect(clientContent).toContain('process.env.CUSTOM_SECRET');
+      expect(clientContent).not.toContain('process.env.TEST_TOKEN_API_KEY');
+    });
   });
 });

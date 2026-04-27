@@ -36,6 +36,7 @@ Options:
   --base-url <url>       Override base URL for API requests
   --name <name>          Name for the generated CLI (default: derived from API title)
   --env-prefix <prefix>  Prefix for environment variables
+  --auth-env-name <name> Complete authentication environment variable name
   --include-tags <tags>  Comma-separated list of tags to include
   --include-ops <ids>    Comma-separated list of operation IDs to include
   --exclude-tags <tags>  Comma-separated list of tags to exclude
@@ -53,6 +54,7 @@ You can use a `.openapi2cli.yaml` file to customize the generated CLI. Use the `
 ```yaml
 # Example .openapi2cli.yaml
 cliName: my-service-cli
+authEnvName: MY_SERVICE_API_KEY
 permissions:
   readonly: false
   allow:
@@ -103,8 +105,11 @@ npm link
 ### 3. Usage
 
 ```bash
-# Set authentication (Default prefix is API_)
-export API_TOKEN="your-token"
+# Set authentication (defaults to API_<SCHEME>_API_KEY)
+export API_BEARER_AUTH_API_KEY="your-api-key"
+
+# Or generate with a complete auth variable name:
+# openapi2cli ./api.json -o ./my-cli --auth-env-name MY_SERVICE_API_KEY
 
 # Execute an API call
 my-cli get-users --limit 10

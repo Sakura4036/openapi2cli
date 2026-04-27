@@ -39,8 +39,8 @@ The generator takes the parsed metadata and produces the target CLI source code.
 
 ## Authentication Mechanism
 
-The generated CLI uses environment variables for authentication, which are automatically mapped from the security schemes defined in the OpenAPI spec. It supports:
-- **Bearer Token**: `export <SCHEME>_TOKEN="..."`
-- **API Key**: `export <SCHEME>_TOKEN="..."`
-- **Basic Auth**: `export <SCHEME>_USERNAME="..."` and `export <SCHEME>_PASSWORD="..."`
+The generated CLI uses environment variables for authentication, which are automatically mapped from the security schemes defined in the OpenAPI spec. By default, generated auth credential names end in `_API_KEY` and can be fully replaced with `--auth-env-name` or `authEnvName`. It supports:
+- **Bearer Token**: `export <PREFIX>_<SCHEME>_API_KEY="..."`
+- **API Key**: `export <PREFIX>_<SCHEME>_API_KEY="..."`
+- **Basic Auth**: `export <PREFIX>_<SCHEME>_USERNAME="..."` and `export <PREFIX>_<SCHEME>_PASSWORD="..."`
 - **OAuth2/OIDC**: Handled as Bearer tokens.

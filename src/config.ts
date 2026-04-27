@@ -34,6 +34,7 @@ export function mergeConfig(config: GeneratorConfig, options: any): GeneratorCon
   if (options.cliName) merged.cliName = options.cliName;
   if (options.baseUrl) merged.baseUrl = options.baseUrl;
   if (options.envPrefix) merged.envPrefix = options.envPrefix;
+  if (options.authEnvName) merged.authEnvName = options.authEnvName;
 
   return merged;
 }
